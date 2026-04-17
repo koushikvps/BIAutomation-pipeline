@@ -1,0 +1,2682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BI Automation Platform</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0d1117; color: #c9d1d9; height: 100vh; overflow: hidden; display: flex; }
+
+  /* Sidebar */
+  .sidebar { width: 220px; background: #161b22; border-right: 1px solid #30363d; display: flex; flex-direction: column; flex-shrink: 0; }
+  .sidebar-logo { padding: 16px; border-bottom: 1px solid #30363d; font-size: 15px; font-weight: 700; color: #f0f6fc; display: flex; align-items: center; gap: 8px; }
+  .sidebar-logo .badge { background: #238636; color: #fff; font-size: 9px; padding: 2px 6px; border-radius: 8px; }
+  .sidebar-nav { flex: 1; padding: 8px 0; overflow-y: auto; }
+  .nav-section { padding: 8px 16px 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #484f58; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 16px; font-size: 13px; color: #8b949e; cursor: pointer; transition: all 0.15s; border-left: 2px solid transparent; }
+  .nav-item:hover { background: #1c2128; color: #f0f6fc; }
+  .nav-item.active { background: #1c2128; color: #58a6ff; border-left-color: #58a6ff; }
+  .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+  .nav-item .count { margin-left: auto; font-size: 10px; background: #30363d; padding: 1px 6px; border-radius: 8px; color: #8b949e; }
+  .sidebar-footer { padding: 12px 16px; border-top: 1px solid #30363d; font-size: 11px; color: #484f58; }
+
+  /* Main content */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .page { flex: 1; overflow-y: auto; display: none; }
+  .page.active { display: flex; flex-direction: column; }
+
+  /* Common */
+  .page-header { padding: 16px 24px; border-bottom: 1px solid #30363d; background: #161b22; display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+  .page-header h2 { font-size: 16px; color: #f0f6fc; font-weight: 700; }
+  .page-header .subtitle { font-size: 12px; color: #8b949e; }
+  .page-body { flex: 1; padding: 20px 24px; overflow-y: auto; }
+  .btn { padding: 7px 16px; border-radius: 6px; border: 1px solid transparent; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .btn-green { background: #238636; color: #fff; border-color: #2ea043; }
+  .btn-green:hover { background: #2ea043; }
+  .btn-green:disabled { background: #1a1e24; color: #484f58; border-color: #30363d; cursor: not-allowed; }
+  .btn-blue { background: #1f6feb; color: #fff; }
+  .btn-blue:hover { background: #388bfd; }
+  .btn-outline { background: transparent; color: #8b949e; border-color: #30363d; }
+  .btn-outline:hover { color: #f0f6fc; border-color: #8b949e; }
+  .btn-sm { padding: 4px 10px; font-size: 11px; }
+  input[type=text], input[type=password], textarea { padding: 8px 12px; border-radius: 6px; border: 1px solid #30363d; background: #0d1117; color: #f0f6fc; font-size: 13px; outline: none; font-family: inherit; }
+  input:focus, textarea:focus { border-color: #58a6ff; }
+  .hidden { display: none; }
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; overflow: hidden; }
+  .card-header { padding: 12px 16px; border-bottom: 1px solid #21262d; display: flex; align-items: center; gap: 10px; }
+  .card-header .title { font-size: 13px; font-weight: 700; color: #f0f6fc; }
+  .card-body { padding: 14px 16px; }
+  .grid { display: grid; gap: 16px; }
+  .grid-2 { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+  .grid-3 { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+  .metric { display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px; }
+  .metric .label { color: #8b949e; }
+  .metric .val { color: #f0f6fc; font-weight: 600; font-family: Consolas, monospace; }
+  .val.green { color: #3fb950; }
+  .val.yellow { color: #d29922; }
+  .val.red { color: #da3633; }
+  .divider { height: 1px; background: #21262d; margin: 8px 0; }
+  .pill { padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+  .pill.ok { background: #23863622; color: #3fb950; }
+  .pill.warn { background: #d2992222; color: #d29922; }
+  .pill.err { background: #da363322; color: #da3633; }
+  .pill.info { background: #58a6ff22; color: #58a6ff; }
+
+  /* Pipeline */
+  .pipeline-layout { display: flex; gap: 0; flex: 1; overflow: hidden; }
+  .pipeline-left { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .pipeline-right { width: 380px; border-left: 1px solid #30363d; display: flex; flex-direction: column; background: #010409; }
+  .controls { padding: 10px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #30363d; background: #161b22; }
+  .status-text { color: #8b949e; font-size: 11px; margin-left: auto; }
+  .status-text .elapsed { color: #58a6ff; font-weight: 600; }
+  .canvas { padding: 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 0; align-items: center; }
+  .node { width: 100%; max-width: 480px; background: #161b22; border: 2px solid #30363d; border-radius: 8px; transition: all 0.3s; overflow: hidden; }
+  .node.active { border-color: #f0883e; box-shadow: 0 0 12px rgba(240,136,62,0.15); }
+  .node.completed { border-color: #238636; }
+  .node.failed { border-color: #da3633; }
+  .node.pending { border-color: #30363d; opacity: 0.4; }
+  .node-progress { height: 2px; background: #30363d; }
+  .node-progress .bar { height: 100%; transition: width 0.5s; }
+  .node-progress .bar.active { background: #f0883e; animation: pulse 1.5s infinite; }
+  .node-progress .bar.completed { background: #238636; width: 100%; }
+  .node-progress .bar.failed { background: #da3633; width: 100%; }
+  .node-header { display: flex; align-items: center; gap: 8px; padding: 8px 12px; }
+  .node-icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .node-icon.ado { background: #0078d4; } .node-icon.mapper { background: #8957e5; } .node-icon.planner { background: #f0883e; }
+  .node-icon.developer { background: #58a6ff; } .node-icon.adf { background: #1f6feb; } .node-icon.validator { background: #3fb950; }
+  .node-icon.deploy { background: #da3633; } .node-icon.postval { background: #d29922; }
+  .node-title { font-size: 12px; font-weight: 600; color: #f0f6fc; }
+  .node-subtitle { font-size: 10px; color: #8b949e; }
+  .node-status { margin-left: auto; font-size: 10px; font-weight: 600; }
+  .node-status.pending { color: #484f58; } .node-status.active { color: #f0883e; } .node-status.completed { color: #3fb950; }
+  .node-status.failed { color: #da3633; }
+  .node-body { padding: 4px 12px 8px; font-size: 11px; color: #8b949e; }
+  .node-detail { font-size: 11px; }
+  .node-detail.hidden { display: none; }
+  .connector { width: 2px; height: 12px; background: #30363d; }
+  .connector.completed { background: #238636; } .connector.active { background: #f0883e; }
+  .spinner-dots { display: inline-flex; gap: 3px; }
+  .spinner-dots span { width: 4px; height: 4px; background: #f0883e; border-radius: 50%; animation: bounce 1.4s infinite; }
+  .spinner-dots span:nth-child(2) { animation-delay: 0.2s; } .spinner-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%,80%,100% { transform: scale(0); } 40% { transform: scale(1); } }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+  /* Terminal */
+  .terminal-header { padding: 6px 12px; border-bottom: 1px solid #30363d; background: #161b22; display: flex; align-items: center; gap: 6px; }
+  .terminal-header .dots { display: flex; gap: 4px; }
+  .terminal-header .dots span { width: 8px; height: 8px; border-radius: 50%; }
+  .terminal-header .dots span:nth-child(1) { background: #da3633; } .terminal-header .dots span:nth-child(2) { background: #d29922; } .terminal-header .dots span:nth-child(3) { background: #3fb950; }
+  .terminal-header .title { font-size: 10px; color: #484f58; font-family: Consolas, monospace; margin-left: 6px; }
+  .terminal-body { flex: 1; overflow-y: auto; padding: 8px 12px; font-family: Consolas, monospace; font-size: 11px; line-height: 1.6; }
+  .log-line { display: flex; gap: 6px; }
+  .log-time { color: #484f58; flex-shrink: 0; width: 60px; }
+  .log-level { flex-shrink: 0; width: 40px; font-weight: 700; }
+  .log-level.info { color: #58a6ff; } .log-level.ok { color: #3fb950; } .log-level.warn { color: #d29922; }
+  .log-level.err { color: #da3633; } .log-level.run { color: #f0883e; }
+  .log-msg { color: #c9d1d9; } .log-msg .hl { color: #79c0ff; } .log-msg .green { color: #3fb950; }
+  .log-msg .yellow { color: #d29922; } .log-msg .red { color: #da3633; } .log-msg .dim { color: #484f58; }
+
+  /* Data Catalog */
+  .catalog-search { width: 100%; max-width: 500px; }
+  .catalog-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .catalog-table th { text-align: left; color: #8b949e; font-weight: 600; padding: 8px 10px; border-bottom: 1px solid #30363d; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .catalog-table td { padding: 8px 10px; border-bottom: 1px solid #21262d; }
+  .catalog-table tr:hover { background: #161b22; }
+  .catalog-table tr { cursor: pointer; }
+  .layer-tag { padding: 2px 6px; border-radius: 3px; font-size: 9px; font-weight: 700; text-transform: uppercase; }
+  .layer-tag.source { background: #0078d422; color: #58a6ff; } .layer-tag.bronze { background: #cd7f3222; color: #cd7f32; }
+  .layer-tag.silver { background: #8b949e22; color: #8b949e; } .layer-tag.gold { background: #d2992222; color: #d29922; }
+
+  /* Column detail panel */
+  .col-panel { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; margin-top: 16px; }
+  .col-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .col-table th { text-align: left; color: #484f58; padding: 4px 8px; font-size: 10px; }
+  .col-table td { padding: 4px 8px; color: #c9d1d9; font-family: Consolas, monospace; font-size: 11px; border-bottom: 1px solid #21262d; }
+
+  /* Query Builder */
+  .query-input { width: 100%; min-height: 60px; resize: vertical; }
+  .query-result { margin-top: 16px; }
+  .result-sql { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 12px; font-family: Consolas, monospace; font-size: 11px; color: #79c0ff; white-space: pre-wrap; margin: 12px 0; }
+  .result-table { width: 100%; border-collapse: collapse; font-size: 11px; overflow-x: auto; display: block; }
+  .result-table th { background: #161b22; color: #8b949e; padding: 6px 10px; border: 1px solid #30363d; font-size: 10px; text-transform: uppercase; position: sticky; top: 0; }
+  .result-table td { padding: 5px 10px; border: 1px solid #21262d; color: #c9d1d9; font-family: Consolas, monospace; }
+  .result-table tr:hover td { background: #161b22; }
+
+  /* Templates */
+  .template-card { cursor: pointer; transition: all 0.2s; }
+  .template-card:hover { border-color: #58a6ff; transform: translateY(-2px); }
+  .template-icon { font-size: 28px; margin-bottom: 8px; }
+  .template-name { font-size: 14px; font-weight: 700; color: #f0f6fc; margin-bottom: 4px; }
+  .template-desc { font-size: 11px; color: #8b949e; line-height: 1.5; margin-bottom: 10px; }
+  .template-meta { display: flex; gap: 12px; font-size: 10px; color: #484f58; }
+
+  /* History table */
+  .hist-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .hist-table th { text-align: left; color: #8b949e; padding: 8px 10px; border-bottom: 1px solid #30363d; font-size: 10px; text-transform: uppercase; }
+  .hist-table td { padding: 7px 10px; border-bottom: 1px solid #21262d; }
+  .hist-table tr:hover { background: #161b22; }
+
+  /* Lineage */
+  .lineage-panel { border-top: 1px solid #30363d; background: #0d1117; padding: 12px; overflow-x: auto; }
+  .lineage-panel.hidden { display: none; }
+  .lineage-flow { display: flex; align-items: flex-start; gap: 0; }
+  .lineage-column { display: flex; flex-direction: column; gap: 6px; min-width: 150px; }
+  .lineage-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 8px; border-radius: 4px; text-align: center; margin-bottom: 2px; }
+  .lineage-label.source { background: #0078d422; color: #58a6ff; } .lineage-label.bronze { background: #cd7f3222; color: #cd7f32; }
+  .lineage-label.silver { background: #8b949e22; color: #8b949e; } .lineage-label.gold { background: #d2992222; color: #d29922; }
+  .lineage-item { background: #161b22; border: 1px solid #30363d; border-radius: 4px; padding: 6px 8px; font-size: 10px; }
+  .lineage-item .obj-name { font-family: Consolas, monospace; color: #c9d1d9; font-size: 10px; display: block; }
+  .lineage-item .obj-meta { display: flex; justify-content: space-between; margin-top: 2px; }
+  .lineage-item .obj-rows { font-weight: 700; font-family: Consolas, monospace; }
+  .lineage-arrow { display: flex; flex-direction: column; align-items: center; min-width: 50px; padding-top: 24px; }
+  .lineage-arrow svg { overflow: visible; }
+  .arrow-line { stroke: #30363d; stroke-width: 2; }
+  .arrow-dot { fill: #30363d; }
+  .arrow-animated .arrow-line { stroke: #58a6ff; stroke-dasharray: 6 4; animation: flowDash 1s linear infinite; }
+  .arrow-animated .arrow-dot { fill: #58a6ff; }
+  @keyframes flowDash { to { stroke-dashoffset: -10; } }
+  .lineage-arrow .arrow-label { font-size: 8px; color: #484f58; margin-top: 2px; }
+
+  ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: #161b22; } ::-webkit-scrollbar-thumb { background: #484f58; border-radius: 4px; } ::-webkit-scrollbar-thumb:hover { background: #6e7681; }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar hidden" id="sidebarEl">
+  <div class="sidebar-logo">&#x1F3D7;&#xFE0F; BI Platform <span class="badge">AI</span></div>
+  <div class="sidebar-nav">
+    <div class="nav-section">Build</div>
+    <div class="nav-item active" onclick="showPage('pipeline')"><span class="icon">&#x25B6;</span> Pipeline</div>
+    <div class="nav-item" onclick="showPage('templates')"><span class="icon">&#x1F4CB;</span> Templates</div>
+    <div class="nav-section">Testing</div>
+    <div class="nav-item" onclick="showPage('testing')"><span class="icon">&#x1F9EA;</span> Test Automation</div>
+    <div class="nav-section">Explore</div>
+    <div class="nav-item" onclick="showPage('connectors')"><span class="icon">&#x1F50C;</span> Connectors</div>
+    <div class="nav-item" onclick="showPage('catalog')"><span class="icon">&#x1F4DA;</span> Data Catalog</div>
+    <div class="nav-item" onclick="showPage('query')"><span class="icon">&#x1F50D;</span> Query Builder</div>
+    <div class="nav-item" onclick="showPage('semantic')"><span class="icon">&#x1F4D6;</span> Semantic Layer</div>
+    <div class="nav-section">Monitor</div>
+    <div class="nav-item" onclick="showPage('dashboard')"><span class="icon">&#x1F4CA;</span> Dashboard</div>
+    <div class="nav-item" onclick="showPage('scheduling')"><span class="icon">&#x23F0;</span> Scheduling</div>
+    <div class="nav-item" onclick="showPage('dq')"><span class="icon">&#x2705;</span> Data Quality</div>
+    <div class="nav-item" onclick="showPage('lineage')"><span class="icon">&#x1F517;</span> Column Lineage</div>
+    <div class="nav-item" onclick="showPage('history')"><span class="icon">&#x1F4CB;</span> History</div>
+    <div class="nav-section">Admin</div>
+    <div class="nav-item" onclick="showPage('costs')"><span class="icon">&#x1F4B0;</span> Cost Analytics</div>
+    <div class="nav-item" onclick="showPage('access')"><span class="icon">&#x1F512;</span> Access Control</div>
+    <div class="nav-item" onclick="showPage('feedback')"><span class="icon">&#x1F4AC;</span> Feedback</div>
+    <div class="nav-item" onclick="showPage('knowledgebase')"><span class="icon">&#x1F9E0;</span> Knowledge Base</div>
+    <div class="nav-item" onclick="showPage('ops')"><span class="icon">&#x2699;&#xFE0F;</span> Ops Dashboard</div>
+  </div>
+  <div class="sidebar-footer">v2.0 &middot; DEV</div>
+</div>
+
+<!-- Login overlay -->
+<div id="loginOverlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0d1117;display:flex;align-items:center;justify-content:center;z-index:100;">
+  <div style="text-align:center;">
+    <div style="font-size:24px;margin-bottom:8px;">&#x1F3D7;&#xFE0F;</div>
+    <div style="font-size:15px;color:#f0f6fc;margin-bottom:16px;font-weight:600;">BI Automation Platform</div>
+    <input type="password" id="apiKeyInput" placeholder="Enter API Key" style="width:300px;margin-bottom:10px;display:block;">
+    <button class="btn btn-green" onclick="login()" style="width:300px;">Connect</button>
+    <div id="loginError" style="color:#da3633;font-size:11px;margin-top:8px;"></div>
+  </div>
+</div>
+
+<!-- Main content area -->
+<div class="main hidden" id="mainArea">
+
+  <!-- PIPELINE PAGE -->
+  <div class="page active" id="page-pipeline">
+    <div class="pipeline-layout">
+      <div class="pipeline-left">
+        <div class="controls" style="flex-wrap:wrap;gap:6px;">
+          <div style="display:flex;gap:4px;align-items:center;">
+            <button class="btn btn-sm" id="btnModeADO" onclick="setInputMode('ado')" style="background:#1f6feb;color:#fff;">ADO</button>
+            <button class="btn btn-outline btn-sm" id="btnModeText" onclick="setInputMode('text')">Free Text</button>
+          </div>
+          <div id="adoInput" style="display:flex;gap:6px;align-items:center;">
+            <span style="font-size:11px;color:#8b949e;">Work Item</span>
+            <input type="text" id="workItemId" value="515677" style="width:100px;">
+          </div>
+          <div id="freeTextInput" style="display:none;flex:1;min-width:200px;">
+            <textarea id="freeStoryText" rows="2" style="width:100%;font-size:11px;min-height:36px;resize:vertical;" placeholder="Paste any story: Gherkin, plain English, bullet points...&#10;e.g. Given I am a sales manager, When I view the dashboard, Then I see revenue by region"></textarea>
+          </div>
+          <button class="btn btn-green" id="btnBuild" onclick="startBuild()">&#x25B6; Build</button>
+          <button class="btn btn-sm" id="btnCancel" style="background:#da3633;color:#fff;display:none;" onclick="cancelPipeline()">&#x25A0; Cancel</button>
+          <button class="btn btn-outline btn-sm" onclick="resetUI()">Reset</button>
+          <button class="btn btn-outline btn-sm" id="btnEngineToggle" onclick="toggleEnginePanel()" title="Configure pipeline engine and load pattern">&#x2699;&#xFE0F; Engine</button>
+          <span class="status-text" id="statusText"></span>
+        </div>
+        <!-- ENGINE CONFIG PANEL -->
+        <div id="enginePanel" style="display:none;margin:6px 0;padding:10px 14px;background:#161b22;border:1px solid #30363d;border-radius:8px;font-size:12px;">
+          <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;">
+            <div>
+              <label style="color:#8b949e;display:block;margin-bottom:2px;">Orchestration</label>
+              <select id="cfgOrchestration" style="background:#0d1117;color:#c9d1d9;border:1px solid #30363d;padding:4px 8px;border-radius:4px;">
+                <option value="commander" selected>Commander + Supervisor</option>
+                <option value="classic">Classic (hardcoded chain)</option>
+              </select>
+            </div>
+            <div>
+              <label style="color:#8b949e;display:block;margin-bottom:2px;">Pipeline Engine</label>
+              <select id="cfgEngine" onchange="onEngineChange()" style="background:#0d1117;color:#c9d1d9;border:1px solid #30363d;padding:4px 8px;border-radius:4px;">
+                <option value="adf" selected>Azure Data Factory</option>
+                <option value="databricks">Databricks (preview)</option>
+                <option value="synapse_spark">Synapse Spark (preview)</option>
+              </select>
+            </div>
+            <div>
+              <label style="color:#8b949e;display:block;margin-bottom:2px;">Load Pattern</label>
+              <select id="cfgLoadPattern" onchange="onLoadPatternChange()" style="background:#0d1117;color:#c9d1d9;border:1px solid #30363d;padding:4px 8px;border-radius:4px;">
+                <option value="full_load" selected>Full Load</option>
+                <option value="incremental">Incremental</option>
+                <option value="merge_scd1">Merge SCD-1</option>
+                <option value="merge_scd2">Merge SCD-2</option>
+              </select>
+            </div>
+            <div id="cfgIncrCol" style="display:none;">
+              <label style="color:#8b949e;display:block;margin-bottom:2px;">Watermark Column</label>
+              <input id="cfgIncrementalCol" type="text" placeholder="e.g. ModifiedDate" style="background:#0d1117;color:#c9d1d9;border:1px solid #30363d;padding:4px 8px;border-radius:4px;width:130px;">
+            </div>
+            <div id="cfgMergeKeys" style="display:none;">
+              <label style="color:#8b949e;display:block;margin-bottom:2px;">Merge Key Columns</label>
+              <input id="cfgMergeKeyCols" type="text" placeholder="e.g. customer_id,order_id" style="background:#0d1117;color:#c9d1d9;border:1px solid #30363d;padding:4px 8px;border-radius:4px;width:180px;">
+            </div>
+            <div id="cfgScd2Cols" style="display:none;">
+              <label style="color:#8b949e;display:block;margin-bottom:2px;">SCD-2 Tracked Columns</label>
+              <input id="cfgScd2TrackedCols" type="text" placeholder="e.g. name,email,status" style="background:#0d1117;color:#c9d1d9;border:1px solid #30363d;padding:4px 8px;border-radius:4px;width:180px;">
+            </div>
+            <div id="cfgDbxUrl" style="display:none;">
+              <label style="color:#8b949e;display:block;margin-bottom:2px;">Databricks URL</label>
+              <input id="cfgDatabricksUrl" type="text" placeholder="https://adb-xxx.azuredatabricks.net" style="background:#0d1117;color:#c9d1d9;border:1px solid #30363d;padding:4px 8px;border-radius:4px;width:240px;">
+            </div>
+            <div id="cfgSparkPool" style="display:none;">
+              <label style="color:#8b949e;display:block;margin-bottom:2px;">Spark Pool</label>
+              <input id="cfgSparkPoolName" type="text" placeholder="e.g. sparkpool1" style="background:#0d1117;color:#c9d1d9;border:1px solid #30363d;padding:4px 8px;border-radius:4px;width:130px;">
+            </div>
+          </div>
+        </div>
+        <div class="canvas" id="canvas"></div>
+      </div>
+      <div class="pipeline-right">
+        <div style="flex:1;display:flex;flex-direction:column;">
+          <div class="terminal-header">
+            <div class="dots"><span></span><span></span><span></span></div>
+            <span class="title">pipeline.log</span>
+            <button class="btn btn-outline btn-sm" style="margin-left:auto;font-size:9px;" onclick="clearLog()">Clear</button>
+          </div>
+          <div class="terminal-body" id="terminalBody"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEMPLATES PAGE -->
+  <div class="page" id="page-templates">
+    <div class="page-header"><h2>&#x1F4CB; Template Library</h2><span class="subtitle">Pre-built patterns for common analytics use cases</span></div>
+    <div class="page-body"><div class="grid grid-3" id="templateGrid">Loading...</div></div>
+  </div>
+
+  <!-- DATA CATALOG PAGE -->
+  <div class="page" id="page-catalog">
+    <div class="page-header">
+      <h2>&#x1F4DA; Data Catalog</h2>
+      <span class="subtitle">Browse all datasets across source and Synapse layers</span>
+      <input type="text" class="catalog-search" id="catalogSearch" placeholder="Search tables, columns..." oninput="filterCatalog()" style="margin-left:auto;width:280px;">
+    </div>
+    <div class="page-body" id="catalogBody">Loading...</div>
+  </div>
+
+  <!-- QUERY BUILDER PAGE -->
+  <div class="page" id="page-query">
+    <div class="page-header"><h2>&#x1F50D; Query Builder</h2><span class="subtitle">Ask questions in plain English — AI generates SQL and runs it</span></div>
+    <div class="page-body">
+      <textarea class="query-input" id="queryInput" placeholder="e.g. Show me top 10 customers by total order amount"></textarea>
+      <div style="margin-top:10px;display:flex;gap:8px;">
+        <button class="btn btn-blue" id="btnQuery" onclick="runQuery()">&#x1F50D; Ask</button>
+        <button class="btn btn-outline btn-sm" onclick="document.getElementById('queryInput').value='';document.getElementById('queryResult').innerHTML='';">Clear</button>
+      </div>
+      <div id="queryResult" class="query-result"></div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD PAGE -->
+  <div class="page" id="page-dashboard">
+    <div class="page-header"><h2>&#x1F4CA; Dashboard</h2><span class="subtitle">Platform health, metrics, and data lineage</span></div>
+    <div class="page-body" id="dashboardBody">Loading...</div>
+  </div>
+
+  <!-- CONNECTORS PAGE -->
+  <div class="page" id="page-connectors">
+    <div class="page-header"><h2>&#x1F50C; Data Source Connectors</h2><span class="subtitle">Register and manage connections to external data sources</span></div>
+    <div class="page-body" id="connectorsBody"></div>
+  </div>
+
+  <!-- SEMANTIC LAYER PAGE -->
+  <div class="page" id="page-semantic">
+    <div class="page-header"><h2>&#x1F4D6; Semantic Layer</h2><span class="subtitle">Business definitions ensuring consistent metrics across the platform</span></div>
+    <div class="page-body" id="semanticBody"></div>
+  </div>
+
+  <!-- SCHEDULING PAGE -->
+  <div class="page" id="page-scheduling">
+    <div class="page-header"><h2>&#x23F0; Scheduling &amp; Orchestration</h2><span class="subtitle">Pipeline schedules, dependencies, and SLA tracking</span></div>
+    <div class="page-body" id="schedulingBody"></div>
+  </div>
+
+  <!-- DATA QUALITY PAGE -->
+  <div class="page" id="page-dq">
+    <div class="page-header"><h2>&#x2705; Data Quality Scoring</h2><span class="subtitle">Freshness, completeness, and accuracy across all datasets</span></div>
+    <div class="page-body" id="dqBody"></div>
+  </div>
+
+  <!-- COLUMN LINEAGE PAGE -->
+  <div class="page" id="page-lineage">
+    <div class="page-header"><h2>&#x1F517; Column-Level Lineage</h2><span class="subtitle">Track column transformations across source, bronze, silver, and gold layers</span></div>
+    <div class="page-body" id="lineageBody"></div>
+  </div>
+
+  <!-- COST ANALYTICS PAGE -->
+  <div class="page" id="page-costs">
+    <div class="page-header"><h2>&#x1F4B0; Cost &amp; Usage Analytics</h2><span class="subtitle">Azure spend per pipeline, resource utilization, and ROI</span></div>
+    <div class="page-body" id="costsBody"></div>
+  </div>
+
+  <!-- ACCESS CONTROL PAGE -->
+  <div class="page" id="page-access">
+    <div class="page-header"><h2>&#x1F512; Access Control</h2><span class="subtitle">Role-based permissions and data governance</span></div>
+    <div class="page-body" id="accessBody"></div>
+  </div>
+
+  <!-- FEEDBACK PAGE -->
+  <div class="page" id="page-feedback">
+    <div class="page-header"><h2>&#x1F4AC; Feedback Loop</h2><span class="subtitle">Report issues, suggest improvements — AI learns from your feedback</span></div>
+    <div class="page-body" id="feedbackBody"></div>
+  </div>
+
+  <!-- KNOWLEDGE BASE PAGE -->
+  <div class="page" id="page-knowledgebase">
+    <div class="page-header">
+      <h2>&#x1F9E0; RAG Knowledge Base</h2>
+      <span class="subtitle">Ground AI agents in YOUR data -- prevent hallucination by feeding real metadata</span>
+    </div>
+    <div class="page-body" id="kbBody">
+      <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+        <button class="btn btn-blue" onclick="kbSync()">&#x1F504; Sync from Synapse</button>
+        <button class="btn btn-green" onclick="kbShowUpload()">&#x2B06; Upload Data Dictionary</button>
+        <button class="btn btn-outline" onclick="kbShowGlossary()">&#x1F4D6; Add Glossary Terms</button>
+        <button class="btn btn-outline" onclick="kbShowSQL()">&#x1F4C4; Upload SQL Patterns</button>
+        <button class="btn btn-outline" onclick="kbShowSourceScan()">&#x1F50C; Scan Source DB</button>
+        <button class="btn btn-outline" onclick="kbShowTemplates()">&#x1F3ED; Seed Industry Templates</button>
+        <button class="btn btn-outline" onclick="kbTestQuery()">&#x1F50D; Test Retrieval</button>
+        <button class="btn btn-outline" onclick="kbRefreshStatus()">&#x1F4CA; Refresh Status</button>
+      </div>
+      <div id="kbStatus" style="margin-bottom:16px;"></div>
+      <div id="kbUploadArea" style="display:none;margin-bottom:16px;background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px;"></div>
+      <div id="kbResults" style="margin-bottom:16px;"></div>
+      <div id="kbDocs" style=""></div>
+    </div>
+  </div>
+
+  <!-- OPS DASHBOARD PAGE -->
+  <div class="page" id="page-ops">
+    <div class="page-header"><h2>&#x2699;&#xFE0F; Operations Dashboard</h2><span class="subtitle">Health monitoring, auto-pause, secret alerts, prompt regression, DB cleanup</span></div>
+    <div class="page-body" id="opsBody">
+      <div style="color:#484f58;padding:20px;">Loading operations data...</div>
+    </div>
+  </div>
+
+  <!-- TESTING PAGE -->
+  <div class="page" id="page-testing">
+    <div class="page-header"><h2>&#x1F9EA; Test Automation</h2><span class="subtitle">AI-powered UI + Data testing — intelligent routing</span></div>
+    <div class="page-body" id="testingBody">
+      <div style="padding:20px;color:#484f58;font-size:13px;">Loading testing page...</div>
+    </div>
+  </div>
+
+  <!-- HISTORY PAGE -->
+  <div class="page" id="page-history">
+    <div class="page-header"><h2>&#x1F4CB; Execution History</h2><button class="btn btn-outline btn-sm" onclick="loadHistory()" style="margin-left:auto;">Refresh</button></div>
+    <div class="page-body"><table class="hist-table"><thead><tr><th>Story</th><th>WI</th><th>Mode</th><th>Risk</th><th>Status</th><th>Artifacts</th><th>Deployed</th><th>Skipped</th><th>Failed</th><th>Last Run</th></tr></thead><tbody id="historyBody"></tbody></table></div>
+  </div>
+</div>
+
+<script>
+const FUNC_URL = window.location.origin;
+let FUNC_KEY = sessionStorage.getItem('bi_api_key') || '';
+let pollTimer = null, startTime = null, logLines = [], lastStepStatus = {}, lineageLoaded = false, currentInstanceId = null;
+let catalogData = null;
+
+// LOGIN
+function login() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (!key) { document.getElementById('loginError').textContent = 'Enter API key'; return; }
+  FUNC_KEY = key; sessionStorage.setItem('bi_api_key', key);
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.getElementById('sidebarEl').classList.remove('hidden');
+  document.getElementById('mainArea').classList.remove('hidden');
+  renderNodes(null); addLog('info','Platform connected. Ready.');
+}
+if (FUNC_KEY) document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.getElementById('sidebarEl').classList.remove('hidden');
+  document.getElementById('mainArea').classList.remove('hidden');
+  renderNodes(null); addLog('info','Platform connected. Ready.');
+});
+
+// NAVIGATION
+const ALL_PAGES = ['pipeline','templates','connectors','catalog','query','semantic','dashboard','scheduling','dq','lineage','history','costs','access','feedback','ops'];
+function showPage(name) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const idx = ALL_PAGES.indexOf(name);
+  if (idx >= 0) document.querySelectorAll('.nav-item')[idx].classList.add('active');
+  const page = document.getElementById('page-' + name);
+  if (page) page.classList.add('active');
+  if (name === 'catalog') loadCatalog();
+  if (name === 'templates') loadTemplates();
+  if (name === 'dashboard') loadDashboard();
+  if (name === 'history') loadHistory();
+  if (name === 'semantic') loadSemantic();
+  if (name === 'scheduling') loadScheduling();
+  if (name === 'dq') loadDQ();
+  if (name === 'costs') loadCosts();
+  if (name === 'access') loadAccess();
+  if (name === 'feedback') loadFeedback();
+  if (name === 'connectors') loadConnectors();
+  if (name === 'lineage') loadColumnLineage();
+  if (name === 'testing') loadTesting();
+  if (name === 'ops') loadOps();
+  if (name === 'knowledgebase') kbRefreshStatus();
+}
+
+// TERMINAL LOG
+function addLog(level, msg) {
+  const t = new Date().toTimeString().substring(0,8);
+  const body = document.getElementById('terminalBody');
+  const line = document.createElement('div'); line.className = 'log-line';
+  line.innerHTML = `<span class="log-time">${t}</span><span class="log-level ${level}">${level.toUpperCase().padEnd(4)}</span><span class="log-msg">${msg}</span>`;
+  body.appendChild(line); body.scrollTop = body.scrollHeight;
+}
+function clearLog() { document.getElementById('terminalBody').innerHTML = ''; addLog('info','Log cleared.'); }
+
+// PIPELINE NODES
+const NODES = [
+  {step:1,id:'fetch',icon:'ado',emoji:'&#x1F4CB;',title:'ADO Client',subtitle:'Fetch Story'},
+  {step:2,id:'extract',icon:'mapper',emoji:'&#x1F50D;',title:'Story Mapper',subtitle:'Extract tables'},
+  {step:3,id:'planner',icon:'planner',emoji:'&#x1F4D0;',title:'Planner Agent',subtitle:'AI plan'},
+  {step:4,id:'developer',icon:'developer',emoji:'&#x1F4BB;',title:'Developer Agent',subtitle:'AI SQL gen'},
+  {step:5,id:'review',icon:'review',emoji:'&#x1F50D;',title:'Code Review',subtitle:'AI quality check'},
+  {step:6,id:'adf',icon:'adf',emoji:'&#x1F3ED;',title:'ADF Pipeline',subtitle:'Datasets + trigger'},
+  {step:7,id:'preval',icon:'validator',emoji:'&#x2705;',title:'Pre-Validation',subtitle:'Schema check'},
+  {step:8,id:'deploy',icon:'deploy',emoji:'&#x1F680;',title:'Deploy Synapse',subtitle:'Execute DDL'},
+  {step:9,id:'postval',icon:'postval',emoji:'&#x1F50E;',title:'Post-Validation',subtitle:'Data quality'},
+];
+
+function renderNodes(steps) {
+  const c = document.getElementById('canvas'); let html = '';
+  for (let i = 0; i < NODES.length; i++) {
+    const n = NODES[i], s = steps ? steps.find(x => x.step === n.step) : null;
+    const status = s ? s.status : 'pending', detail = s?.detail || '';
+    if (i > 0) { const prev = steps ? (steps.find(x => x.step === NODES[i-1].step)||{}).status||'pending' : 'pending'; html += `<div class="connector ${prev==='completed'?'completed':prev==='in_progress'?'active':''}"></div>`; }
+    const labels = {completed:'&#x2713; Done',in_progress:'Running',pending:'Waiting',failed:'&#x2715; Failed',escalated:'&#x26A0;',declined:'&#x1F6AB; Declined'};
+    const barW = status==='completed'?'100':status==='in_progress'?'60':'0';
+    const showLin = n.step===7 && (status==='completed'||status==='failed');
+    const linBtn = showLin ? ` <button class="btn btn-outline btn-sm" style="font-size:9px;padding:1px 6px;" onclick="toggleLineage()">&#x25BC; Flow</button>` : '';
+    const expandBtn = (status==='completed' || status==='failed') ? ` <button class="btn btn-outline btn-sm" style="font-size:9px;padding:1px 6px;" onclick="toggleNodeDetail(${n.step})">&#x25BC; Details</button>` : '';
+    html += `<div class="node ${status}"><div class="node-progress"><div class="bar ${status}" style="width:${barW}%"></div></div>
+      <div class="node-header"><div class="node-icon ${n.icon}">${n.emoji}</div><div><div class="node-title">${n.title}</div><div class="node-subtitle">${n.subtitle}</div></div>
+      <div class="node-status ${status}">${status==='in_progress'?'<div class="spinner-dots"><span></span><span></span><span></span></div> ':''}${labels[status]||status}${expandBtn}${linBtn}</div></div>
+      ${detail?`<div class="node-body">${detail}</div>`:''}
+      <div class="node-detail hidden" id="nodeDetail${n.step}"></div>
+      ${showLin?'<div class="lineage-panel hidden" id="lineagePanel"><div style="text-align:center;padding:12px;color:#484f58;">Click Flow to load...</div></div>':''}
+    </div>`;
+  }
+  c.innerHTML = html;
+}
+function toggleNodeDetail(step) {
+  const el = document.getElementById('nodeDetail'+step);
+  if (!el) return;
+  el.classList.toggle('hidden');
+  if (!el.classList.contains('hidden') && !el.dataset.loaded) {
+    el.dataset.loaded = 'true';
+    // Populate from cached data
+    const info = window._lastPipelineData;
+    if (!info) { el.innerHTML = '<div style="padding:6px;color:#484f58;">No details available yet.</div>'; return; }
+    const stepData = info.steps?.find(s => s.step === step);
+    const detail = stepData?.detail || '';
+    if (step === 3 && (info.review || window._cachedReview)) {
+      const r = info.review || window._cachedReview;
+      let h = `<div style="padding:8px;font-size:11px;border-top:1px solid #21262d;">`;
+      h += `<div style="margin-bottom:6px;"><span style="color:#58a6ff;font-weight:600;">Mode:</span> <span class="pill ${r.mode==='brownfield'?'warn':'info'}">${r.mode}</span> <span style="color:#58a6ff;font-weight:600;margin-left:12px;">Risk:</span> <span class="pill ${r.risk_level==='low'?'ok':r.risk_level==='medium'?'warn':'err'}">${r.risk_level}</span></div>`;
+      if (r.plan_summary) {
+        h += '<div style="font-size:10px;color:#484f58;margin:6px 0 4px;">EXECUTION PLAN:</div>';
+        r.plan_summary.forEach(s => {
+          const actionIcon = s.action==='create'?'&#x2795;':'&#x1F504;';
+          h += `<div style="padding:2px 0;color:#c9d1d9;">${actionIcon} <span class="pill ${s.layer==='bronze'?'warn':s.layer==='silver'?'info':'ok'}" style="font-size:9px;">${s.layer}</span> <span style="font-family:Consolas,monospace;">${s.object_name}</span> <span style="color:#484f58;">(${s.artifact_type})</span>${s.source?` &larr; ${s.source}`:''}</div>`;
+        });
+      }
+      h += '</div>';
+      el.innerHTML = h;
+    } else if (step === 4 && (info.artifacts || window._cachedArtifacts)) {
+      const arts = info.artifacts || window._cachedArtifacts;
+      let h = '<div style="padding:8px;font-size:11px;border-top:1px solid #21262d;">';
+      h += '<div style="font-size:10px;color:#484f58;margin-bottom:4px;">GENERATED ARTIFACTS:</div>';
+      arts.forEach(a => {
+        h += `<div style="margin-bottom:8px;padding:6px;background:#0d1117;border:1px solid #21262d;border-radius:4px;">`;
+        h += `<div><span class="pill ${a.layer==='bronze'?'warn':a.layer==='silver'?'info':'ok'}" style="font-size:9px;">${a.layer}</span> <span style="font-family:Consolas,monospace;color:#f0f6fc;">${a.name}</span> <span style="color:#484f58;font-size:10px;">${a.type}</span></div>`;
+        if (a.sql_preview) h += `<pre style="margin:4px 0 0;padding:4px;font-size:10px;color:#8b949e;white-space:pre-wrap;max-height:80px;overflow-y:auto;background:#161b22;border-radius:3px;">${a.sql_preview.replace(/</g,'&lt;')}</pre>`;
+        h += '</div>';
+      });
+      h += '</div>';
+      el.innerHTML = h;
+    } else if (step === 5 && (info.code_review || window._cachedCodeReview)) {
+      const cr = info.code_review || window._cachedCodeReview;
+      if (cr) window._cachedCodeReview = cr;
+      let h = '<div style="padding:8px;font-size:11px;border-top:1px solid #21262d;">';
+      const verdictColors = {APPROVE:'#238636', NEEDS_FIX:'#d29922', REJECT:'#da3633'};
+      const vc = verdictColors[cr.overall_verdict] || '#8b949e';
+      h += `<div style="margin-bottom:8px;"><span style="font-size:14px;font-weight:700;color:${vc};">${cr.overall_verdict}</span> <span style="color:#484f58;font-size:10px;">${cr.total_findings} findings (${cr.critical_count} critical, ${cr.warning_count} warning, ${cr.info_count} info)</span></div>`;
+      if (cr.review_summary) h += `<div style="color:#c9d1d9;margin-bottom:8px;">${cr.review_summary}</div>`;
+      (cr.reviews || []).forEach(rev => {
+        const rc = verdictColors[rev.verdict] || '#8b949e';
+        h += `<div style="margin-bottom:6px;padding:6px;background:#0d1117;border:1px solid #21262d;border-radius:4px;">`;
+        h += `<div><span style="color:${rc};font-weight:600;">${rev.verdict}</span> <span style="font-family:Consolas,monospace;color:#f0f6fc;">${rev.artifact_name||''}</span></div>`;
+        (rev.findings || []).forEach(f => {
+          const fc = f.severity==='critical'?'#da3633':f.severity==='warning'?'#d29922':'#8b949e';
+          h += `<div style="margin:3px 0 0 12px;"><span style="color:${fc};font-size:9px;font-weight:600;">${f.severity.toUpperCase()}</span> <span style="color:#484f58;font-size:9px;">[${f.category}]</span> ${f.issue}</div>`;
+          if (f.fix) h += `<div style="margin:1px 0 0 24px;color:#238636;font-size:9px;">Fix: ${f.fix}</div>`;
+        });
+        h += '</div>';
+      });
+      h += '</div>';
+      el.innerHTML = h;
+    } else {
+      let h = '<div style="padding:8px;font-size:11px;border-top:1px solid #21262d;">';
+      if (detail) {
+        h += `<div style="color:#c9d1d9;">${detail}</div>`;
+      } else {
+        h += '<div style="color:#484f58;">No additional details for this step.</div>';
+      }
+      h += '</div>';
+      el.innerHTML = h;
+    }
+  }
+}
+
+// BUILD
+async function startBuild() {
+  startTime = Date.now(); lastStepStatus = {}; lineageLoaded = false;
+  window._reviewShown = false; window._artifactsLogged = false; window._codeReviewLogged = false; window._prevCodeVerdict = null; window._lastCodeReview = null; window._lastPipelineData = null; window._cachedReview = null; window._cachedArtifacts = null; window._cachedCodeReview = null;
+  document.getElementById('btnBuild').disabled = true; document.getElementById('btnCancel').style.display = 'inline-block';
+  renderNodes(null); clearLog();
+
+  const mode = window._inputMode || 'ado';
+
+  const isCommander = useCommanderMode();
+  const engineSettings = getEngineSettings();
+
+  if (isCommander) {
+    // COMMANDER MODE: build story payload and send to /api/commander/run
+    let storyPayload = {};
+    if (mode === 'text') {
+      const text = document.getElementById('freeStoryText').value.trim();
+      if (!text) { document.getElementById('btnBuild').disabled=false; return; }
+      storyPayload = { story_id: 'FREE-' + Date.now(), title: text.substring(0,80), description: text, source_tables: [], engine_settings: engineSettings };
+    } else {
+      const wid = document.getElementById('workItemId').value.trim();
+      if (!wid) { document.getElementById('btnBuild').disabled=false; return; }
+      storyPayload = { work_item_id: wid, story_id: 'ADO-' + wid, engine_settings: engineSettings };
+    }
+    addLog('info','Starting <span style="color:#f0883e;font-weight:700;">Commander Pipeline</span>' + (mode==='text' ? ' from free-text' : ` for <span class="hl">#${storyPayload.work_item_id||''}</span>`));
+    addLog('info',`Engine: <span class="hl">${engineSettings.pipeline_engine}</span> | Load: <span class="hl">${engineSettings.load_pattern}</span>`);
+    addLog('run','Commander analyzing and decomposing task...');
+    try {
+      const resp = await fetch(`${FUNC_URL}/api/commander/run?code=${FUNC_KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(storyPayload)});
+      const data = await resp.json();
+      if (data.error) { addLog('err',data.error); document.getElementById('btnBuild').disabled=false; return; }
+      currentInstanceId = data.instance_id;
+      addLog('ok',`Commander started: instance <span class="hl">${data.instance_id.substring(0,8)}...</span>`);
+      const init = NODES.map(n=>({step:n.step,status:n.step===1?'in_progress':'pending',detail:''}));
+      renderNodes(init);
+      pollTimer = setInterval(()=>pollCommanderStatus(data.instance_id), 2500);
+    } catch(e) { addLog('err','Commander error: '+e.message); document.getElementById('btnBuild').disabled=false; }
+  } else if (mode === 'text') {
+    // CLASSIC FREE TEXT MODE
+    const text = document.getElementById('freeStoryText').value.trim();
+    if (!text) { document.getElementById('btnBuild').disabled=false; return; }
+    addLog('info','Starting pipeline from <span class="hl">free-text story</span> (classic mode)');
+    addLog('run','Interpreting story (Gherkin/English/mixed)...');
+    try {
+      const resp = await fetch(`${FUNC_URL}/api/process-free-story?code=${FUNC_KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text, title:text.substring(0,80)})});
+      const data = await resp.json();
+      if (data.error) {
+        addLog('err',data.error);
+        if (data.interpretation) addLog('info',`Interpretation notes: ${data.interpretation.interpretation_notes||'none'}`);
+        if (data.hint) addLog('info',data.hint);
+        document.getElementById('btnBuild').disabled=false; return;
+      }
+      if (data.confidence) addLog('info',`Confidence: tables=<span class="hl">${data.confidence.source_tables||'?'}</span> metrics=<span class="hl">${data.confidence.metrics||'?'}</span> overall=<span class="hl">${data.confidence.overall||'?'}</span>`);
+      if (data.interpretation_notes) addLog('info',`Notes: ${data.interpretation_notes}`);
+      addLog('ok',`<span class="hl">${data.title||'Story'}</span>`);
+      addLog('ok',`Tables: <span class="hl">${(data.source_tables||[]).join(', ')}</span>`);
+      currentInstanceId = data.instance_id;
+      const init = NODES.map(n=>({step:n.step,status:n.step<=2?'completed':n.step===3?'in_progress':'pending',detail:n.step===1?data.title:n.step===2?`${(data.source_tables||[]).length} tables`:''}));
+      renderNodes(init);
+      pollTimer = setInterval(()=>pollProgress(data.story_id), 2000);
+    } catch(e) { addLog('err',e.message); document.getElementById('btnBuild').disabled=false; }
+  } else {
+    // CLASSIC ADO MODE
+    const wid = document.getElementById('workItemId').value.trim(); if (!wid) { document.getElementById('btnBuild').disabled=false; return; }
+    addLog('info',`Starting pipeline for <span class="hl">#${wid}</span> (classic mode)`);
+    addLog('run','Fetching from Azure DevOps...');
+    try {
+      const resp = await fetch(`${FUNC_URL}/api/process-ado-story?code=${FUNC_KEY}&wait=false`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({work_item_id:wid})});
+      const data = await resp.json();
+      if (data.error) { addLog('err',data.error); document.getElementById('btnBuild').disabled=false; return; }
+      addLog('ok',`<span class="hl">${data.title||'Story'}</span>`);
+      addLog('ok',`Tables: <span class="hl">${(data.source_tables||[]).join(', ')}</span>`);
+      currentInstanceId = data.instance_id;
+      const init = NODES.map(n=>({step:n.step,status:n.step<=2?'completed':n.step===3?'in_progress':'pending',detail:n.step===1?data.title:n.step===2?`${(data.source_tables||[]).length} tables`:''}));
+      renderNodes(init); pollProgress(wid);
+    } catch(e) { addLog('err',e.message); document.getElementById('btnBuild').disabled=false; }
+  }
+}
+
+window._lastPipelineData = null;
+window._reviewShown = false;
+async function pollProgress(wid) {
+  const poll = async () => {
+    try {
+      const elapsed = Math.round((Date.now()-startTime)/1000);
+      document.getElementById('statusText').innerHTML = `Running... <span class="elapsed">${elapsed}s</span>`;
+      const iid = currentInstanceId ? `&instance_id=${currentInstanceId}` : '';
+      const resp = await fetch(`${FUNC_URL}/api/pipeline-progress?work_item_id=${wid}${iid}&code=${FUNC_KEY}`);
+      const data = await resp.json();
+      window._lastPipelineData = data;
+
+      if (data.steps?.length) {
+        renderNodes(data.steps);
+        for (const s of data.steps) {
+          const k=`s${s.step}`,p=lastStepStatus[k];
+          if(s.status!==p){
+            lastStepStatus[k]=s.status;
+            const nm=NODES.find(n=>n.step===s.step)?.title||`Step ${s.step}`;
+            if(s.status==='in_progress') addLog('run',`${nm}: <span class="yellow">started</span>`);
+            else if(s.status==='completed') addLog('ok',`${nm}: <span class="green">done</span>${s.detail?' — '+s.detail:''}`);
+            else if(s.status==='failed') addLog('err',`${nm}: <span class="red">FAILED</span>${s.detail?' — '+s.detail:''}`);
+          }
+        }
+      }
+
+      // Cache review, artifact, and code review data so Details tab works after step advances
+      if (data.review) window._cachedReview = data.review;
+      if (data.artifacts) window._cachedArtifacts = data.artifacts;
+      if (data.code_review) window._cachedCodeReview = data.code_review;
+
+      // REVIEW GATE: Show approval panel when Planner is done and awaiting review
+      if (data.awaiting_approval && !window._reviewShown) {
+        window._reviewShown = true;
+        const r = data.review || {};
+        showReviewPanel(r, data.instance_id);
+        document.getElementById('statusText').innerHTML = '<span style="color:#d29922;">&#x23F8; Awaiting your review...</span>';
+        return; // Stop polling until approved/declined
+      }
+
+      // Show artifact details in log when Developer completes
+      if (data.artifacts && !window._artifactsLogged) {
+        window._artifactsLogged = true;
+        addLog('info','─── Generated Artifacts ───');
+        data.artifacts.forEach(a => {
+          addLog('ok',`<span class="pill ${a.layer==='bronze'?'warn':a.layer==='silver'?'info':'ok'}" style="font-size:9px;">${a.layer}</span> <span style="font-family:Consolas,monospace;">${a.name}</span> (${a.type})`);
+          if (a.sql_preview) addLog('info',`<span style="font-size:10px;color:#484f58;font-family:Consolas,monospace;">${a.sql_preview.substring(0,120).replace(/</g,'&lt;')}...</span>`);
+        });
+        addLog('info','───────────────────────────');
+      }
+
+      // Show code review results in log
+      if (data.code_review && !window._codeReviewLogged) {
+        window._codeReviewLogged = true;
+        const cr = data.code_review;
+        const vc = cr.overall_verdict === 'APPROVE' ? 'ok' : cr.overall_verdict === 'REJECT' ? 'err' : 'warn';
+        addLog('info','─── Code Review ───');
+        addLog(vc, `Verdict: <span style="font-weight:700;">${cr.overall_verdict}</span> — ${cr.total_findings} findings (${cr.critical_count} critical, ${cr.warning_count} warning, ${cr.info_count} info)`);
+        if (cr.review_summary) addLog('info', cr.review_summary);
+        (cr.reviews || []).forEach(rev => {
+          if (rev.findings && rev.findings.length > 0) {
+            rev.findings.forEach(f => {
+              const fl = f.severity === 'critical' ? 'err' : f.severity === 'warning' ? 'warn' : 'info';
+              addLog(fl, `[${f.category}] ${f.issue}`);
+              if (f.fix) addLog('info', `<span style="color:#238636;font-size:10px;">  Fix: ${f.fix}</span>`);
+            });
+          }
+        });
+        if (cr.overall_verdict !== 'APPROVE') {
+          addLog('warn', 'Healer Agent attempting to fix issues...');
+        }
+        addLog('info','───────────────────────');
+      }
+      // Reset code review log flag if review re-runs (healer produced new artifacts)
+      if (data.code_review && data.code_review !== window._lastCodeReview) {
+        window._lastCodeReview = data.code_review;
+        if (data.code_review.overall_verdict !== (window._prevCodeVerdict || '')) {
+          window._codeReviewLogged = false;
+          window._prevCodeVerdict = data.code_review.overall_verdict;
+        }
+      }
+
+      if (data.is_complete) {
+        const fe=Math.round((Date.now()-startTime)/1000),txt=data.progress_text||'';
+        const nc=(txt.match(/NEW:/g)||[]).length,sc=(txt.match(/EXISTS:/g)||[]).length,fc=(txt.match(/FAILED:/g)||[]).length;
+        addLog('info','─'.repeat(40));
+        addLog(fc?'warn':'ok',`Pipeline ${fc?'finished with <span class="red">'+fc+' failures</span>':'<span class="green">COMPLETE</span>'} in <span class="hl">${fe}s</span>`);
+        addLog('info',`Deployed: <span class="green">${nc}</span> Skipped: <span class="yellow">${sc}</span> Failed: <span class="red">${fc}</span>`);
+        (txt.match(/NEW: .+/g)||[]).forEach(o=>addLog('ok',`  &#x2705; ${o}`));
+        (txt.match(/EXISTS: .+/g)||[]).forEach(o=>addLog('info',`  &#x23ED;&#xFE0F; ${o}`));
+        (txt.match(/FAILED: .+/g)||[]).forEach(o=>addLog('err',`  &#x274C; ${o}`));
+        addLog('info','─'.repeat(40));
+        document.getElementById('statusText').innerHTML=`Done — <span class="elapsed">${fe}s</span>`;
+        document.getElementById('btnBuild').disabled=false;
+        document.getElementById('btnCancel').style.display='none';
+        return;
+      }
+      pollTimer=setTimeout(poll,3500);
+    } catch(e) { pollTimer=setTimeout(poll,5000); }
+  };
+  setTimeout(poll,4000);
+}
+
+// REVIEW PANEL
+function showReviewPanel(review, instanceId) {
+  addLog('info','═══ HUMAN REVIEW REQUIRED ═══');
+  addLog('info',`Mode: <span class="hl">${review.mode||'?'}</span> | Risk: <span class="hl">${review.risk_level||'?'}</span> | Artifacts: <span class="hl">${review.artifact_count||0}</span>`);
+
+  if (review.plan_summary) {
+    addLog('info','');
+    addLog('info','<span style="color:#58a6ff;font-weight:600;">Execution Plan:</span>');
+    review.plan_summary.forEach(s => {
+      const icon = s.action==='create'?'&#x2795; CREATE':'&#x1F504; ALTER';
+      addLog('info',`  ${icon} [${s.layer}] <span style="font-family:Consolas,monospace;">${s.object_name}</span> (${s.artifact_type})${s.source?' &larr; '+s.source:''}${s.logic?' — '+s.logic:''}`);
+    });
+    addLog('info','');
+  }
+
+  if (review.validation_requirements && review.validation_requirements.length) {
+    addLog('info','<span style="color:#58a6ff;font-weight:600;">Validation Checks:</span>');
+    review.validation_requirements.forEach(v => {
+      addLog('info',`  &#x2705; ${v.check_type}${v.table?' on '+v.table:''}${v.columns?.length?' ('+v.columns.join(', ')+')':''}`);
+    });
+    addLog('info','');
+  }
+
+  addLog('warn','&#x23F8; Waiting for your approval. Review the plan above and click Approve or Decline.');
+
+  // Show approval buttons in terminal
+  const body = document.getElementById('terminalBody');
+  const btnDiv = document.createElement('div');
+  btnDiv.id = 'reviewButtons';
+  btnDiv.style.cssText = 'padding:12px;display:flex;gap:10px;align-items:center;border-top:1px solid #30363d;margin-top:8px;';
+  btnDiv.innerHTML = `
+    <button class="btn btn-green" onclick="approveReview('${instanceId}')">&#x2705; Approve & Execute</button>
+    <button class="btn" style="background:#da3633;color:#fff;" onclick="declineReview('${instanceId}')">&#x1F6AB; Decline</button>
+    <span id="reviewStatus" style="font-size:11px;color:#8b949e;"></span>
+  `;
+  body.appendChild(btnDiv);
+  body.scrollTop = body.scrollHeight;
+}
+
+async function approveReview(instanceId) {
+  document.getElementById('reviewStatus').textContent = 'Approving...';
+  try {
+    await fetch(`${FUNC_URL}/api/approve-plan?code=${FUNC_KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({instance_id:instanceId})});
+    addLog('ok','<span class="green">APPROVED</span> — pipeline resuming...');
+    document.getElementById('reviewButtons').remove();
+    // Resume polling
+    const wid = document.getElementById('workItemId').value.trim();
+    pollTimer = setTimeout(()=>pollProgress(wid),2000);
+  } catch(e) { document.getElementById('reviewStatus').textContent = 'Error: '+e.message; }
+}
+
+async function declineReview(instanceId) {
+  const reason = prompt('Reason for declining (optional):') || 'Declined by reviewer';
+  try {
+    await fetch(`${FUNC_URL}/api/decline-plan?code=${FUNC_KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({instance_id:instanceId, reason})});
+    addLog('err',`<span class="red">DECLINED</span> — ${reason}`);
+    document.getElementById('reviewButtons').remove();
+    document.getElementById('statusText').innerHTML='<span style="color:#da3633;">Declined</span>';
+    document.getElementById('btnBuild').disabled=false;
+    document.getElementById('btnCancel').style.display='none';
+  } catch(e) { addLog('err', e.message); }
+}
+
+// CANCEL
+async function cancelPipeline() {
+  const instanceId = currentInstanceId;
+  if (!instanceId) { addLog('warn','No active pipeline to cancel'); return; }
+  if (!confirm('Cancel the running pipeline?')) return;
+  try {
+    await fetch(`${FUNC_URL}/api/cancel-pipeline?code=${FUNC_KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({instance_id:instanceId})});
+    addLog('warn','Pipeline <span class="red">CANCELLED</span> by user');
+    if(pollTimer) clearTimeout(pollTimer);
+    document.getElementById('statusText').innerHTML='<span style="color:#da3633;">Cancelled</span>';
+    document.getElementById('btnBuild').disabled=false;
+    document.getElementById('btnCancel').style.display='none';
+  } catch(e) { addLog('err','Cancel failed: '+e.message); }
+}
+
+// COMMANDER STATUS POLLING
+window._commanderStepLog = {};
+async function pollCommanderStatus(instanceId) {
+  try {
+    const elapsed = Math.round((Date.now()-startTime)/1000);
+    document.getElementById('statusText').innerHTML = `Commander running... <span class="elapsed">${elapsed}s</span>`;
+    const resp = await fetch(`${FUNC_URL}/api/commander/status?instance_id=${instanceId}&code=${FUNC_KEY}`);
+    const data = await resp.json();
+    const rs = data.runtime_status || '';
+
+    // Map commander steps to visual nodes
+    if (data.steps && data.steps.length) {
+      renderNodes(data.steps);
+      for (const s of data.steps) {
+        const k = 'cs'+s.step, p = window._commanderStepLog[k];
+        if (s.status !== p) {
+          window._commanderStepLog[k] = s.status;
+          const nm = NODES.find(n=>n.step===s.step)?.title || ('Step '+s.step);
+          if (s.status==='in_progress') addLog('run', nm+': <span class="yellow">started</span>');
+          else if (s.status==='completed') addLog('ok', nm+': <span class="green">done</span>'+(s.detail?' &mdash; '+s.detail:''));
+          else if (s.status==='failed') addLog('err', nm+': <span class="red">FAILED</span>'+(s.detail?' &mdash; '+s.detail:''));
+        }
+      }
+    }
+
+    // Log supervisor verdicts
+    if (data.supervisor) {
+      const sup = data.supervisor;
+      if (sup.quality_score && !window._supPlanLogged) {
+        window._supPlanLogged = true;
+        addLog('info', 'Supervisor plan check: ' + (sup.approved ? '<span class="green">APPROVED</span>' : '<span class="red">REJECTED</span>') + ' (score: '+sup.quality_score+')');
+        if (sup.warnings && sup.warnings.length) addLog('warn', 'Supervisor warnings: '+sup.warnings.join(', '));
+      }
+    }
+
+    // Log commander decisions
+    if (data.commander && data.commander.decision && !window._cmdDecisionLogged) {
+      window._cmdDecisionLogged = true;
+      addLog('info', 'Commander decision: <span class="hl">'+data.commander.decision+'</span>');
+    }
+
+    // Review gate
+    if (data.awaiting_review && !window._reviewShown) {
+      window._reviewShown = true;
+      showCommanderReviewPanel(instanceId);
+      document.getElementById('statusText').innerHTML = '<span style="color:#d29922;">&#x23F8; Awaiting your review...</span>';
+      return;
+    }
+
+    // Terminal states
+    if (rs === 'Completed' || rs === 'Failed' || rs === 'Terminated') {
+      clearInterval(pollTimer); pollTimer = null;
+      if (rs === 'Completed') {
+        addLog('ok', 'Commander Pipeline <span class="green">COMPLETE</span> in <span class="hl">'+elapsed+'s</span>');
+        if (data.supervisor && data.supervisor.quality_score) addLog('info','Supervisor final sign-off: score '+data.supervisor.quality_score);
+      } else {
+        addLog('err', 'Commander Pipeline <span class="red">'+rs+'</span>');
+      }
+      document.getElementById('statusText').innerHTML = rs+' &mdash; <span class="hl">'+elapsed+'s</span>';
+      document.getElementById('btnBuild').disabled = false;
+      document.getElementById('btnCancel').style.display = 'none';
+      return;
+    }
+
+    // Continue polling
+  } catch(e) {
+    addLog('err','Poll error: '+e.message);
+  }
+}
+
+function showCommanderReviewPanel(instanceId) {
+  addLog('warn','&#x23F8; <span style="color:#d29922;">HUMAN REVIEW GATE</span> &mdash; Commander pauses for approval');
+  addLog('info','Review the plan above, then Approve or Decline.');
+  clearInterval(pollTimer); pollTimer = null;
+  var bar = document.createElement('div');
+  bar.id = 'reviewBar';
+  bar.style.cssText = 'background:#1c1f24;border:1px solid #d29922;border-radius:8px;padding:12px 16px;margin:8px 0;display:flex;align-items:center;gap:12px;';
+  bar.innerHTML = '<span style="color:#d29922;font-weight:bold;">&#x1F6E1; Supervisor is watching</span>'+
+    '<button class="btn btn-green" onclick="commanderApprove(\''+instanceId+'\')">&#x2713; Approve</button>'+
+    '<button class="btn" style="background:#da3633;color:#fff;" onclick="commanderDecline(\''+instanceId+'\')">&#x2717; Decline</button>';
+  document.getElementById('canvas').parentElement.insertBefore(bar, document.getElementById('canvas'));
+}
+
+async function commanderApprove(instanceId) {
+  document.getElementById('reviewBar')?.remove();
+  addLog('ok','Plan <span class="green">APPROVED</span> by user');
+  await fetch(`${FUNC_URL}/api/commander/approve?code=${FUNC_KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({instance_id:instanceId})});
+  pollTimer = setInterval(()=>pollCommanderStatus(instanceId), 2500);
+}
+
+async function commanderDecline(instanceId) {
+  const reason = prompt('Decline reason:') || 'User declined';
+  document.getElementById('reviewBar')?.remove();
+  addLog('err','Plan <span class="red">DECLINED</span>: '+reason);
+  await fetch(`${FUNC_URL}/api/commander/decline?code=${FUNC_KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({instance_id:instanceId, reason})});
+  document.getElementById('btnBuild').disabled = false;
+  document.getElementById('btnCancel').style.display = 'none';
+}
+
+function resetUI() {
+  if(pollTimer){clearTimeout(pollTimer);clearInterval(pollTimer);}
+  window._commanderStepLog = {}; window._supPlanLogged = false; window._cmdDecisionLogged = false;
+  renderNodes(null);
+  document.getElementById('statusText').innerHTML='';
+  document.getElementById('btnBuild').disabled=false;
+  document.getElementById('btnCancel').style.display='none';
+  lastStepStatus={};
+  lineageLoaded=false;
+  window._reviewShown=false;
+  window._artifactsLogged=false;
+  window._lastPipelineData=null;
+}
+
+// LINEAGE
+async function toggleLineage() {
+  const p=document.getElementById('lineagePanel'); if(!p)return; p.classList.toggle('hidden');
+  if(!p.classList.contains('hidden')&&!lineageLoaded){lineageLoaded=true;p.innerHTML='<div style="text-align:center;padding:12px;color:#58a6ff;">Loading from Synapse...</div>';
+    try{const r=await fetch(`${FUNC_URL}/api/data-lineage?code=${FUNC_KEY}`);const d=await r.json();if(d.error){p.innerHTML=`<div style="color:#da3633;padding:8px;">${d.error}</div>`;lineageLoaded=false;return;}p.innerHTML=renderLineageFlow(d);}catch(e){p.innerHTML=`<div style="color:#da3633;padding:8px;">${e.message}</div>`;lineageLoaded=false;}
+  }
+}
+function renderLineageFlow(l) {
+  let h='<div class="lineage-flow">';
+  const cols=[{key:'source',label:'Source DB',css:'source'},{key:'bronze',label:'Bronze',css:'bronze'},{key:'silver',label:'Silver',css:'silver'},{key:'gold',label:'Gold',css:'gold'}];
+  const arrows=['ADF Copy','Transform','Aggregate'];
+  cols.forEach((c,i)=>{
+    if(i>0) h+=renderArrow(arrows[i-1],(l[c.key]||[]).length>0);
+    h+=`<div class="lineage-column"><div class="lineage-label ${c.css}">${c.label}</div>`;
+    const items=l[c.key]||[];
+    if(items.length){items.forEach(t=>{const nm=c.key==='source'?`${t.schema}.${t.name}`:t.name;const rows=typeof t.rows==='number'?t.rows.toLocaleString():'?';h+=`<div class="lineage-item"><span class="obj-name">${nm}</span><div class="obj-meta"><span style="font-size:9px;color:#484f58;">${t.type||'table'}</span><span class="obj-rows" style="color:#3fb950;">${rows}</span></div></div>`;});}
+    else h+='<div class="lineage-item"><span class="obj-name" style="color:#484f58;">—</span></div>';
+    h+='</div>';
+  });
+  return h+'</div>';
+}
+function renderArrow(label,anim){return `<div class="lineage-arrow ${anim?'arrow-animated':''}"><svg width="40" height="16" viewBox="0 0 40 16"><line class="arrow-line" x1="0" y1="8" x2="30" y2="8"/><polygon class="arrow-dot" points="30,3 40,8 30,13"/></svg><span class="arrow-label">${label}</span></div>`;}
+
+// DATA CATALOG
+async function loadCatalog() {
+  const body=document.getElementById('catalogBody');
+  if(catalogData){renderCatalog(catalogData);return;}
+  body.innerHTML='<div style="color:#484f58;padding:40px;text-align:center;">Loading catalog from Source DB + Synapse...</div>';
+  try{const r=await fetch(`${FUNC_URL}/api/data-catalog?code=${FUNC_KEY}`);catalogData=await r.json();renderCatalog(catalogData);}catch(e){body.innerHTML=`<div style="color:#da3633;padding:20px;">${e.message}</div>`;}
+}
+function renderCatalog(data) {
+  const body=document.getElementById('catalogBody');
+  let h=`<div style="margin-bottom:12px;font-size:12px;color:#8b949e;">${data.total_tables} datasets &middot; ${data.total_columns} columns</div>`;
+  h+='<table class="catalog-table"><thead><tr><th>Layer</th><th>Name</th><th>Database</th><th>Type</th><th>Columns</th></tr></thead><tbody>';
+  (data.datasets||[]).forEach((d,i)=>{
+    h+=`<tr onclick="showColumns(${i})"><td><span class="layer-tag ${d.layer}">${d.layer}</span></td><td style="font-family:Consolas,monospace;font-size:11px;color:#f0f6fc;">${d.full_name}</td><td style="font-size:10px;color:#8b949e;">${d.database||''}</td><td style="font-size:10px;color:#484f58;">${d.type||'TABLE'}</td><td>${d.column_count}</td></tr>`;
+  });
+  h+='</tbody></table><div id="colDetail"></div>';
+  body.innerHTML=h;
+}
+function showColumns(idx) {
+  const d=catalogData.datasets[idx]; if(!d) return;
+  let h=`<div class="col-panel"><div style="font-size:13px;font-weight:700;color:#f0f6fc;margin-bottom:8px;">${d.full_name} <span style="color:#484f58;font-weight:400;font-size:11px;">(${d.column_count} columns)</span></div>`;
+  h+='<table class="col-table"><thead><tr><th>Column</th><th>Type</th><th>Nullable</th><th>Max Length</th></tr></thead><tbody>';
+  (d.columns||[]).forEach(c=>{h+=`<tr><td>${c.name}</td><td style="color:#79c0ff;">${c.type}</td><td>${c.nullable||''}</td><td>${c.max_length||''}</td></tr>`;});
+  h+='</tbody></table></div>';
+  document.getElementById('colDetail').innerHTML=h;
+}
+function filterCatalog() {
+  if(!catalogData) return;
+  const q=document.getElementById('catalogSearch').value.toLowerCase();
+  const filtered={...catalogData,datasets:catalogData.datasets.filter(d=>d.full_name.toLowerCase().includes(q)||d.layer.includes(q)||(d.columns||[]).some(c=>c.name.toLowerCase().includes(q)))};
+  filtered.total_tables=filtered.datasets.length;
+  filtered.total_columns=filtered.datasets.reduce((s,d)=>s+d.column_count,0);
+  renderCatalog(filtered);
+}
+
+// QUERY BUILDER
+async function runQuery() {
+  const q=document.getElementById('queryInput').value.trim(); if(!q) return;
+  const res=document.getElementById('queryResult');
+  res.innerHTML='<div style="color:#58a6ff;padding:16px;">Generating SQL and running query...</div>';
+  document.getElementById('btnQuery').disabled=true;
+  try{
+    const r=await fetch(`${FUNC_URL}/api/nl-query?code=${FUNC_KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})});
+    const d=await r.json();
+    let h=`<div style="font-size:12px;font-weight:700;color:#f0f6fc;margin-bottom:6px;">&#x1F4DD; Generated SQL</div><div class="result-sql">${(d.sql||'').replace(/</g,'&lt;')}</div>`;
+    if(d.error){h+=`<div style="color:#da3633;padding:8px;">${d.error}</div>`;}
+    else if(d.rows?.length){
+      h+=`<div style="font-size:12px;font-weight:700;color:#f0f6fc;margin:12px 0 6px;">&#x1F4CA; Results <span style="font-weight:400;color:#8b949e;font-size:11px;">(${d.row_count} rows)</span></div>`;
+      h+='<div style="overflow-x:auto;max-height:400px;"><table class="result-table"><thead><tr>';
+      d.columns.forEach(c=>{h+=`<th>${c}</th>`;});
+      h+='</tr></thead><tbody>';
+      d.rows.forEach(r=>{h+='<tr>';d.columns.forEach(c=>{h+=`<td>${r[c]??''}</td>`;});h+='</tr>';});
+      h+='</tbody></table></div>';
+    } else { h+='<div style="color:#8b949e;padding:8px;">No results</div>'; }
+    res.innerHTML=h;
+  }catch(e){res.innerHTML=`<div style="color:#da3633;">${e.message}</div>`;}
+  document.getElementById('btnQuery').disabled=false;
+}
+
+// TEMPLATES
+async function loadTemplates() {
+  const grid=document.getElementById('templateGrid');
+  try{const r=await fetch(`${FUNC_URL}/api/templates?code=${FUNC_KEY}`);const d=await r.json();
+    grid.innerHTML=(d.templates||[]).map(t=>`
+      <div class="card template-card" onclick="useTemplate('${t.id}','${t.name}')">
+        <div class="card-body" style="padding:20px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <span style="font-size:28px;">${t.icon}</span>
+            <div><div class="template-name">${t.name}</div><span class="pill ${t.complexity==='low'?'ok':t.complexity==='medium'?'warn':'err'}">${t.complexity}</span></div>
+          </div>
+          <div class="template-desc">${t.description}</div>
+          <div class="divider"></div>
+          <div style="font-size:10px;color:#484f58;margin-bottom:4px;">SOURCE TABLES</div>
+          <div style="font-size:11px;color:#8b949e;font-family:Consolas,monospace;margin-bottom:8px;">${t.source_tables.join(', ')}</div>
+          <div style="font-size:10px;color:#484f58;margin-bottom:4px;">GOLD VIEWS</div>
+          <div style="font-size:11px;color:#d29922;font-family:Consolas,monospace;margin-bottom:10px;">${t.gold_views.join(', ')}</div>
+          <div style="display:flex;gap:16px;font-size:11px;color:#8b949e;"><span>&#x1F4E6; ${t.estimated_objects} objects</span></div>
+          <button class="btn btn-blue btn-sm" style="margin-top:10px;width:100%;">&#x25B6; Use Template</button>
+        </div>
+      </div>`).join('');
+  }catch(e){grid.innerHTML=`<div style="color:#da3633;">${e.message}</div>`;}
+}
+async function useTemplate(id,name) {
+  showPage('pipeline');
+  addLog('info',`Deploying template <span class="hl">${name||id}</span>...`);
+  addLog('info','Creating ADO work item and triggering pipeline...');
+  try {
+    const r = await fetch(`${FUNC_URL}/api/use-template?code=${FUNC_KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({template_id:id})});
+    const d = await r.json();
+    if (d.error) { addLog('error', d.error); return; }
+    addLog('ok',`ADO Work Item <span class="hl">#${d.work_item_id}</span> created`);
+    addLog('ok',`Pipeline <span class="hl">${d.instance_id}</span> started for ${d.story_id}`);
+    currentInstanceId = d.instance_id;
+    pollTimer = setInterval(pollProgress, 2000);
+  } catch(e) { addLog('error', e.message); }
+}
+
+// DASHBOARD
+async function loadDashboard() {
+  const body=document.getElementById('dashboardBody');
+  body.innerHTML='<div style="color:#484f58;padding:40px;text-align:center;">Loading...</div>';
+  let health={checks:{}},history={pipelines:[]},lineage={source:[],bronze:[],silver:[],gold:[]};
+  const timeout = (p, ms) => Promise.race([p, new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+  try { const hR = await timeout(fetch(`${FUNC_URL}/api/health`), 10000); health = await hR.json(); } catch(e) { health = {checks:{synapse:{status:'timeout'},config_db:{status:'timeout'},llm:{status:'timeout'},adf:{status:'timeout'}}}; }
+  try { const pR = await timeout(fetch(`${FUNC_URL}/api/pipeline-history?code=${FUNC_KEY}&limit=5`), 8000); history = await pR.json(); } catch(e) {}
+  try { const lR = await timeout(fetch(`${FUNC_URL}/api/data-lineage?code=${FUNC_KEY}`), 15000); lineage = await lR.json(); } catch(e) {}
+  const ch=health.checks||{},pl=history.pipelines||[],lp=pl[0]||{};
+  let h='<div class="grid grid-2" style="margin-bottom:16px;">';
+  [{n:'Synapse',k:'synapse',i:'&#x1F4CA;'},{n:'Config DB',k:'config_db',i:'&#x1F5C4;&#xFE0F;'},{n:'AI Model',k:'llm',i:'&#x1F9E0;'},{n:'Data Factory',k:'adf',i:'&#x1F3ED;'}].forEach(s=>{
+    const st=ch[s.k]||{},cls=st.status==='ok'?'ok':st.status==='error'?'err':'info';
+    h+=`<div class="card"><div class="card-header"><span>${s.i}</span><span class="title">${s.n}</span><span class="pill ${cls}" style="margin-left:auto;">${st.status||'?'}</span></div></div>`;
+  });
+  h+='</div>';
+  if(lp.story_id){h+=`<div class="card" style="margin-bottom:16px;"><div class="card-header"><span>&#x1F3AF;</span><span class="title">Latest: ${lp.story_id}</span><span class="pill ${lp.status==='active'?'ok':'info'}" style="margin-left:auto;">${lp.status}</span></div><div class="card-body"><div class="grid grid-2"><div><div class="metric"><span class="label">Mode</span><span class="val">${lp.mode||'-'}</span></div><div class="metric"><span class="label">Risk</span><span class="val">${lp.risk_level||'-'}</span></div></div><div><div class="metric"><span class="label">Deployed</span><span class="val green">${lp.deploy_count||0}</span></div><div class="metric"><span class="label">Skipped</span><span class="val yellow">${lp.skip_count||0}</span></div></div></div></div></div>`;}
+  // Lineage
+  h+=`<div class="card"><div class="card-header"><span>&#x1F4C8;</span><span class="title">Data Lineage</span></div><div class="card-body" style="overflow-x:auto;padding-bottom:20px;">${renderLineageFlow(lineage)}</div></div>`;
+  h+=`<div class="card" style="margin-top:12px;"><div class="card-header"><span>&#x1F4CA;</span><span class="title">Power BI</span><button class="btn btn-blue btn-sm" style="margin-left:auto;" onclick="downloadPBI()">&#x2B07; Download Dataset</button></div><div class="card-body" style="font-size:12px;color:#8b949e;">Generate a Power BI dataset definition (TMSL JSON) from all Gold views. Open in Power BI Desktop or deploy via REST API.</div></div>`;
+  body.innerHTML=h;
+}
+
+// HISTORY
+async function loadHistory() {
+  const body=document.getElementById('historyBody');
+  body.innerHTML='<tr><td colspan="10" style="color:#484f58;text-align:center;padding:24px;">Loading...</td></tr>';
+  try{const r=await fetch(`${FUNC_URL}/api/pipeline-history?code=${FUNC_KEY}&limit=20`);const d=await r.json();
+    const pl=d.pipelines||[];if(!pl.length){body.innerHTML='<tr><td colspan="10" style="color:#484f58;text-align:center;">No history</td></tr>';return;}
+    body.innerHTML=pl.map(p=>`<tr><td style="font-family:Consolas,monospace;font-size:10px;">${p.story_id||'-'}</td><td>${p.work_item_id||'-'}</td><td><span class="pill ${(p.mode||'').toLowerCase()}">${p.mode||'-'}</span></td><td>${p.risk_level||'-'}</td><td><span class="pill ${(p.status||'').toLowerCase()==='active'?'ok':'info'}">${p.status||'-'}</span></td><td>${p.artifact_count??'-'}</td><td style="color:#3fb950;">${p.deploy_count??'-'}</td><td style="color:#d29922;">${p.skip_count??'-'}</td><td style="color:#da3633;">${p.fail_count??'-'}</td><td style="font-size:10px;color:#8b949e;">${p.last_run_at?new Date(p.last_run_at).toLocaleString():'-'}</td></tr>`).join('');
+  }catch(e){body.innerHTML=`<tr><td colspan="10" style="color:#da3633;">${e.message}</td></tr>`;}
+}
+
+// SEMANTIC LAYER
+async function loadSemantic() {
+  const body = document.getElementById('semanticBody');
+  body.innerHTML = '<div style="color:#484f58;padding:20px;">Loading semantic definitions...</div>';
+  const DEFAULTS = [
+    {term:'Revenue',definition:'SUM(unit_price * quantity) from order_items, excluding cancelled orders',views:'gold.vw_customer_order_summary, gold.vw_sales_daily_summary',owner:'Finance'},
+    {term:'Customer Lifetime Value',definition:'Total revenue per customer across all orders since first purchase',views:'gold.vw_customer_360',owner:'Marketing'},
+    {term:'Order Count',definition:'COUNT of distinct order_id where order_status != cancelled',views:'gold.vw_customer_order_summary',owner:'Operations'},
+    {term:'Average Order Value',definition:'Revenue / Order Count per time period',views:'gold.vw_sales_daily_summary',owner:'Finance'},
+    {term:'Active Customer',definition:'Customer with at least 1 order in the last 12 months',views:'gold.vw_customer_segments',owner:'Marketing'},
+    {term:'Product Performance',definition:'Revenue + units sold + return rate per product SKU',views:'gold.vw_product_performance',owner:'Product'},
+  ];
+  let definitions = DEFAULTS;
+  try {
+    const r = await fetch(`${FUNC_URL}/api/semantic?code=${FUNC_KEY}`);
+    const d = await r.json();
+    if (d.definitions && d.definitions.length > 0) definitions = d.definitions;
+  } catch(e) {}
+
+  let h = '<div style="margin-bottom:16px;"><button class="btn btn-green btn-sm" onclick="showAddSemantic()">+ Add Definition</button></div>';
+  h += '<div id="addSemanticForm" style="display:none;margin-bottom:16px;padding:16px;background:#161b22;border:1px solid #30363d;border-radius:8px;">';
+  h += '<div class="grid grid-2" style="gap:8px;margin-bottom:8px;">';
+  h += '<div><div style="font-size:11px;color:#484f58;margin-bottom:4px;">Term</div><input id="semTerm" style="width:100%;" placeholder="e.g. Revenue"></div>';
+  h += '<div><div style="font-size:11px;color:#484f58;margin-bottom:4px;">Owner</div><input id="semOwner" style="width:100%;" placeholder="e.g. Finance"></div>';
+  h += '</div>';
+  h += '<div style="margin-bottom:8px;"><div style="font-size:11px;color:#484f58;margin-bottom:4px;">Definition</div><textarea id="semDef" style="width:100%;min-height:60px;" placeholder="Business definition..."></textarea></div>';
+  h += '<div style="margin-bottom:8px;"><div style="font-size:11px;color:#484f58;margin-bottom:4px;">Used in Views (comma-separated)</div><input id="semViews" style="width:100%;" placeholder="gold.vw_customer_order_summary"></div>';
+  h += '<button class="btn btn-blue btn-sm" onclick="saveSemantic()">Save</button> <span id="semStatus" style="font-size:11px;"></span>';
+  h += '</div>';
+  h += '<div class="grid grid-2">';
+  definitions.forEach(d => {
+    const views = d.views || '';
+    const viewList = typeof views === 'string' ? views : views.join(', ');
+    h += `<div class="card"><div class="card-body">
+      <div style="font-size:14px;font-weight:700;color:#f0f6fc;margin-bottom:6px;">${d.term}</div>
+      <div style="font-size:12px;color:#c9d1d9;line-height:1.6;margin-bottom:8px;">${d.definition}</div>
+      <div class="divider"></div>
+      <div class="metric"><span class="label">Used in</span><span class="val" style="font-size:10px;color:#d29922;">${viewList}</span></div>
+      <div class="metric"><span class="label">Owner</span><span class="val">${d.owner||''}</span></div>
+    </div></div>`;
+  });
+  h += '</div>';
+  body.innerHTML = h;
+}
+function showAddSemantic() { document.getElementById('addSemanticForm').style.display = document.getElementById('addSemanticForm').style.display === 'none' ? 'block' : 'none'; }
+async function saveSemantic() {
+  const term = document.getElementById('semTerm').value.trim();
+  const def_ = document.getElementById('semDef').value.trim();
+  if (!term || !def_) return;
+  try {
+    await fetch(`${FUNC_URL}/api/semantic?code=${FUNC_KEY}`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({term, definition:def_, views:document.getElementById('semViews').value.trim(), owner:document.getElementById('semOwner').value.trim()})});
+    document.getElementById('semStatus').innerHTML = '<span style="color:#3fb950;">Saved!</span>';
+    setTimeout(() => loadSemantic(), 500);
+  } catch(e) { document.getElementById('semStatus').innerHTML = `<span style="color:#da3633;">${e.message}</span>`; }
+}
+
+// SCHEDULING
+async function loadScheduling() {
+  const body = document.getElementById('schedulingBody');
+  body.innerHTML = '<div style="color:#484f58;padding:20px;">Loading schedules from ADF...</div>';
+  let schedules = [];
+  try {
+    const r = await fetch(`${FUNC_URL}/api/schedules?code=${FUNC_KEY}`);
+    const d = await r.json();
+    schedules = d.schedules || [];
+  } catch(e) {}
+
+  let h = '';
+  if (schedules.length === 0) {
+    h += '<div class="card" style="margin-bottom:16px;"><div class="card-body" style="color:#8b949e;">No ADF pipelines found. Run a story pipeline to auto-generate schedules.</div></div>';
+  } else {
+    h += '<table class="hist-table"><thead><tr><th>Pipeline</th><th>Activities</th><th>Trigger</th><th>Frequency</th><th>Status</th><th>Folder</th></tr></thead><tbody>';
+    schedules.forEach(s => {
+      const trig = s.trigger;
+      const trigName = trig ? trig.name : 'None';
+      const freq = trig ? `${trig.frequency} / ${trig.interval}` : '-';
+      const hrs = trig && trig.hours ? trig.hours.map(h=>`${String(h).padStart(2,'0')}:00`).join(', ') : '';
+      const status = trig ? trig.status : 'No trigger';
+      const cls = status === 'Started' ? 'ok' : status === 'Stopped' ? 'err' : 'info';
+      h += `<tr><td style="font-family:Consolas,monospace;font-size:11px;color:#f0f6fc;">${s.name}</td><td>${s.activities}</td><td>${trigName}</td><td>${freq}${hrs?' at '+hrs:''}</td><td><span class="pill ${cls}">${status}</span></td><td style="font-size:10px;color:#8b949e;">${s.folder||'-'}</td></tr>`;
+    });
+    h += '</tbody></table>';
+  }
+  h += '<div style="margin-top:20px;"><div class="card"><div class="card-header"><span>&#x1F4C8;</span><span class="title">Pipeline Dependency Graph</span></div><div class="card-body" style="text-align:center;padding:20px;">';
+  h += '<div style="display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap;">';
+  ['Source DB','ADF Copy','Bronze','Silver','Gold','Power BI'].forEach((n,i) => {
+    if (i>0) h += '<span style="color:#30363d;font-size:18px;margin:0 8px;">&#x27A1;</span>';
+    const cls = i===0||i===5?'ok':i<3?'warn':'info';
+    h += `<div class="pill ${cls}" style="padding:8px 16px;font-size:12px;">${n}</div>`;
+  });
+  h += '</div></div></div></div>';
+  body.innerHTML = h;
+}
+
+// DATA QUALITY
+async function loadDQ() {
+  const body = document.getElementById('dqBody');
+  body.innerHTML = '<div style="color:#484f58;padding:20px;text-align:center;">Running quality checks...</div>';
+  const objects = [
+    {schema:'bronze',name:'ext_sales_customers',layer:'bronze',type:'external_table'},
+    {schema:'bronze',name:'ext_sales_orders',layer:'bronze',type:'external_table'},
+    {schema:'silver',name:'vw_sales_customers',layer:'silver',type:'view'},
+    {schema:'gold',name:'vw_customer_order_summary',layer:'gold',type:'view'},
+  ];
+  let dqData = null;
+  try {
+    const r = await fetch(`${FUNC_URL}/api/data-quality?code=${FUNC_KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({story_id:'platform',objects})});
+    dqData = await r.json();
+  } catch(e) { body.innerHTML = `<div style="color:#da3633;">${e.message}</div>`; return; }
+
+  const results = dqData.results || [];
+  const pass = results.filter(r=>r.status==='pass').length;
+  const warn = results.filter(r=>r.status==='warn').length;
+  const fail = results.filter(r=>r.status==='fail').length;
+  const skip = results.filter(r=>r.status==='skip').length;
+  const score = results.length ? Math.round((pass / results.length) * 100) : 0;
+
+  let h = '<div class="grid grid-2" style="margin-bottom:16px;">';
+  h += `<div class="card"><div class="card-body" style="text-align:center;"><div style="font-size:36px;font-weight:800;color:${score>=80?'#3fb950':score>=50?'#d29922':'#da3633'};">${score}%</div><div style="font-size:11px;color:#8b949e;">Overall Quality Score</div></div></div>`;
+  h += `<div class="card"><div class="card-body"><div class="metric"><span class="label">Passed</span><span class="val green">${pass}</span></div><div class="metric"><span class="label">Warnings</span><span class="val yellow">${warn}</span></div><div class="metric"><span class="label">Failed</span><span class="val red">${fail}</span></div><div class="metric"><span class="label">Skipped</span><span class="val">${skip}</span></div></div></div>`;
+  h += '</div>';
+
+  h += '<table class="hist-table"><thead><tr><th>Check</th><th>Object</th><th>Status</th><th>Message</th></tr></thead><tbody>';
+  results.forEach(r => {
+    const cls = r.status==='pass'?'ok':r.status==='warn'?'warn':r.status==='fail'?'err':'info';
+    const icon = r.status==='pass'?'&#x2705;':r.status==='warn'?'&#x26A0;':r.status==='fail'?'&#x274C;':'&#x23ED;';
+    h += `<tr><td>${r.check_type}</td><td style="font-family:Consolas,monospace;font-size:10px;">${r.object_name}</td><td>${icon} <span class="pill ${cls}">${r.status}</span></td><td style="font-size:11px;color:#8b949e;">${r.message||''}</td></tr>`;
+  });
+  h += '</tbody></table>';
+  body.innerHTML = h;
+}
+
+// COST ANALYTICS
+async function loadCosts() {
+  const body = document.getElementById('costsBody');
+  body.innerHTML = '<div style="color:#484f58;padding:20px;">Loading cost data...</div>';
+  let costs = {resources:[], total_estimated:0, source:'estimated'};
+  try {
+    const r = await fetch(`${FUNC_URL}/api/costs?code=${FUNC_KEY}`);
+    costs = await r.json();
+  } catch(e) {}
+
+  const total = costs.total_estimated || 0;
+  const src = costs.source || 'estimated';
+  let h = '<div class="grid grid-2" style="margin-bottom:16px;">';
+  h += `<div class="card"><div class="card-body" style="text-align:center;"><div style="font-size:32px;font-weight:800;color:#3fb950;">$${Math.round(total)}</div><div style="font-size:11px;color:#8b949e;">Est. Monthly Cost</div><div style="font-size:10px;color:#484f58;margin-top:4px;">Source: ${src}</div></div></div>`;
+  h += `<div class="card"><div class="card-body" style="text-align:center;"><div style="font-size:32px;font-weight:800;color:#58a6ff;">~$2</div><div style="font-size:11px;color:#8b949e;">Cost per Pipeline Run</div><div style="font-size:10px;color:#484f58;margin-top:4px;">AI + Compute + Storage</div></div></div>`;
+  h += '</div>';
+
+  h += '<table class="hist-table"><thead><tr><th>Resource</th><th>Type</th><th>Monthly Est.</th><th>Note</th></tr></thead><tbody>';
+  (costs.resources||[]).forEach(c => {
+    const monthly = typeof c.monthly === 'number' ? `$${c.monthly.toFixed(2)}` : (c.cost != null ? `$${c.cost.toFixed(2)}` : '-');
+    h += `<tr><td style="color:#f0f6fc;font-size:12px;">${c.name||c.type||'Unknown'}</td><td>${c.type||'-'}</td><td style="font-family:Consolas,monospace;font-size:11px;color:#3fb950;">${monthly}</td><td style="font-size:10px;color:#8b949e;">${c.note||''}</td></tr>`;
+  });
+  h += '</tbody></table>';
+  body.innerHTML = h;
+}
+
+// OPS DASHBOARD
+// ══════════════════════════════════════════
+// KNOWLEDGE BASE (RAG)
+// ══════════════════════════════════════════
+async function kbRefreshStatus() {
+  var st = document.getElementById('kbStatus');
+  try {
+    const r = await fetch(`${FUNC_URL}/api/rag/status?code=${FUNC_KEY}`);
+    const d = await r.json();
+    var types = d.types || {};
+    var typeHtml = Object.entries(types).map(function(e){ return '<span style="background:#21262d;padding:2px 8px;border-radius:10px;font-size:11px;">'+e[0]+': <b>'+e[1]+'</b></span>'; }).join(' ');
+    st.innerHTML = '<div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;">' +
+      '<div style="font-size:28px;font-weight:700;color:#58a6ff;">'+d.document_count+'</div><div style="color:#8b949e;font-size:12px;">documents<br>indexed</div>' +
+      '<div style="height:32px;width:1px;background:#30363d;"></div>' +
+      '<div style="color:#8b949e;font-size:11px;">Backend: <b style="color:#f0f6fc;">'+d.backend+'</b></div>' +
+      '<div style="height:32px;width:1px;background:#30363d;"></div>' +
+      '<div style="color:#8b949e;font-size:11px;">ADLS: <b style="color:'+(d.adls_status==='connected'?'#3fb950':'#d29922')+';">'+d.adls_status+'</b>'+(d.adls_store?' ('+d.adls_store+')':'')+'</div>' +
+      '<div style="height:32px;width:1px;background:#30363d;"></div>' +
+      '<div>'+typeHtml+'</div></div>';
+  } catch(e) {
+    st.innerHTML = '<div style="color:#d29922;padding:10px;">Knowledge base not initialized. Click "Sync from Synapse" to populate.</div>';
+  }
+}
+
+async function kbSync() {
+  var st = document.getElementById('kbResults');
+  st.innerHTML = '<div style="color:#58a6ff;">Syncing Synapse metadata into knowledge base...</div>';
+  try {
+    const r = await fetch(`${FUNC_URL}/api/rag/sync?code=${FUNC_KEY}`,{method:'POST'});
+    const d = await r.json();
+    if (d.error) { st.innerHTML = '<div style="color:#da3633;">'+d.error+'</div>'; return; }
+    var s = d.stats || {};
+    st.innerHTML = '<div style="background:#0d2818;border:1px solid #238636;border-radius:8px;padding:14px;color:#3fb950;">' +
+      '<b>Sync complete!</b> Indexed: '+s.total+' documents<br>' +
+      '<span style="color:#8b949e;">Tables: '+s.tables+' | Columns: '+s.columns+' | Glossary: '+s.glossary+' | Joins: '+s.joins+' | Conventions: '+s.conventions+' | Lineage: '+s.lineage+'</span></div>';
+    kbRefreshStatus();
+  } catch(e) { st.innerHTML = '<div style="color:#da3633;">Sync failed: '+e.message+'</div>'; }
+}
+
+function kbShowUpload() {
+  var area = document.getElementById('kbUploadArea');
+  area.style.display = 'block';
+  area.innerHTML = '<div style="margin-bottom:8px;font-weight:700;color:#f0f6fc;">Upload Data Dictionary</div>' +
+    '<div style="color:#8b949e;font-size:12px;margin-bottom:8px;">Paste CSV or JSON with your table/column definitions. This teaches the AI your actual schema.</div>' +
+    '<textarea id="kbDDInput" rows="8" style="width:100%;background:#0d1117;color:#c9d1d9;border:1px solid #30363d;border-radius:4px;padding:8px;font-family:monospace;font-size:11px;" placeholder=\'[{"table":"stg.customers","column":"customer_id","type":"INT","description":"Primary key"},{"table":"stg.customers","column":"email","type":"NVARCHAR(200)","description":"Customer email address"}]\'></textarea>' +
+    '<div style="margin-top:8px;display:flex;gap:8px;"><button class="btn btn-blue" onclick="kbIngestDD()">Upload</button><button class="btn btn-outline" onclick="document.getElementById(\'kbUploadArea\').style.display=\'none\'">Cancel</button></div>';
+}
+
+async function kbIngestDD() {
+  var raw = document.getElementById('kbDDInput').value.trim();
+  var st = document.getElementById('kbResults');
+  try {
+    var data = JSON.parse(raw);
+    if (!Array.isArray(data)) data = [data];
+    const r = await fetch(`${FUNC_URL}/api/rag/ingest?code=${FUNC_KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data_dictionary:data})});
+    const d = await r.json();
+    st.innerHTML = '<div style="color:#3fb950;">Ingested '+d.ingested+' entries. Total: '+d.total+' documents.</div>';
+    document.getElementById('kbUploadArea').style.display = 'none';
+    kbRefreshStatus();
+  } catch(e) { st.innerHTML = '<div style="color:#da3633;">Parse error: '+e.message+'. Ensure valid JSON array.</div>'; }
+}
+
+function kbShowGlossary() {
+  var area = document.getElementById('kbUploadArea');
+  area.style.display = 'block';
+  area.innerHTML = '<div style="margin-bottom:8px;font-weight:700;color:#f0f6fc;">Add Business Glossary Terms</div>' +
+    '<div style="color:#8b949e;font-size:12px;margin-bottom:8px;">Define business terms so AI uses correct calculations (e.g., Revenue = SUM(line_total)).</div>' +
+    '<textarea id="kbGlossaryInput" rows="6" style="width:100%;background:#0d1117;color:#c9d1d9;border:1px solid #30363d;border-radius:4px;padding:8px;font-family:monospace;font-size:11px;" placeholder=\'[{"term":"Revenue","definition":"SUM(line_total) from order_items","category":"Finance","formula":"SUM(line_total)"},{"term":"Active Customer","definition":"Customer with order in last 90 days"}]\'></textarea>' +
+    '<div style="margin-top:8px;display:flex;gap:8px;"><button class="btn btn-green" onclick="kbIngestGlossary()">Add Terms</button><button class="btn btn-outline" onclick="document.getElementById(\'kbUploadArea\').style.display=\'none\'">Cancel</button></div>';
+}
+
+async function kbIngestGlossary() {
+  var raw = document.getElementById('kbGlossaryInput').value.trim();
+  var st = document.getElementById('kbResults');
+  try {
+    var data = JSON.parse(raw);
+    if (!Array.isArray(data)) data = [data];
+    const r = await fetch(`${FUNC_URL}/api/rag/ingest?code=${FUNC_KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({glossary:data})});
+    const d = await r.json();
+    st.innerHTML = '<div style="color:#3fb950;">Added '+d.ingested+' glossary terms. Total: '+d.total+' documents.</div>';
+    document.getElementById('kbUploadArea').style.display = 'none';
+    kbRefreshStatus();
+  } catch(e) { st.innerHTML = '<div style="color:#da3633;">Parse error: '+e.message+'</div>'; }
+}
+
+function kbShowSQL() {
+  var area = document.getElementById('kbUploadArea');
+  area.style.display = 'block';
+  area.innerHTML = '<div style="margin-bottom:8px;font-weight:700;color:#f0f6fc;">Upload SQL Patterns</div>' +
+    '<div style="color:#8b949e;font-size:12px;margin-bottom:8px;">Paste existing SQL from your repo. AI will learn your coding patterns (naming, joins, aggregations).</div>' +
+    '<textarea id="kbSQLInput" rows="10" style="width:100%;background:#0d1117;color:#c9d1d9;border:1px solid #30363d;border-radius:4px;padding:8px;font-family:monospace;font-size:11px;" placeholder="CREATE VIEW [rpt].[rpt_daily_revenue] AS\nSELECT\n  o.order_dt,\n  SUM(oi.line_total) AS total_revenue\nFROM [clean].[clean_orders] o\nJOIN [clean].[clean_order_items] oi ON o.order_id = oi.order_id\nGROUP BY o.order_dt"></textarea>' +
+    '<div style="margin-top:4px;"><input id="kbSQLName" type="text" placeholder="File name (e.g. rpt_daily_revenue.sql)" style="background:#0d1117;color:#c9d1d9;border:1px solid #30363d;padding:4px 8px;border-radius:4px;width:300px;"></div>' +
+    '<div style="margin-top:8px;display:flex;gap:8px;"><button class="btn btn-blue" onclick="kbIngestSQL()">Upload SQL</button><button class="btn btn-outline" onclick="document.getElementById(\'kbUploadArea\').style.display=\'none\'">Cancel</button></div>';
+}
+
+async function kbIngestSQL() {
+  var sql = document.getElementById('kbSQLInput').value.trim();
+  var name = document.getElementById('kbSQLName').value.trim() || 'pattern_' + Date.now() + '.sql';
+  var st = document.getElementById('kbResults');
+  try {
+    const r = await fetch(`${FUNC_URL}/api/rag/ingest?code=${FUNC_KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sql_files:[{name:name,content:sql}]})});
+    const d = await r.json();
+    st.innerHTML = '<div style="color:#3fb950;">Uploaded SQL pattern "'+name+'". Total: '+d.total+' documents.</div>';
+    document.getElementById('kbUploadArea').style.display = 'none';
+    kbRefreshStatus();
+  } catch(e) { st.innerHTML = '<div style="color:#da3633;">Upload failed: '+e.message+'</div>'; }
+}
+
+async function kbTestQuery() {
+  var query = prompt('Enter a test query (e.g. "customer orders by region"):');
+  if (!query) return;
+  var st = document.getElementById('kbResults');
+  st.innerHTML = '<div style="color:#58a6ff;">Retrieving context for: "'+query+'"...</div>';
+  try {
+    const r = await fetch(`${FUNC_URL}/api/rag/query?code=${FUNC_KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:query,top_k:10})});
+    const d = await r.json();
+    var html = '<div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px;">' +
+      '<div style="font-weight:700;color:#f0f6fc;margin-bottom:8px;">Retrieval Results for: "'+query+'"</div>' +
+      '<div style="color:#8b949e;font-size:11px;margin-bottom:8px;">'+d.documents.length+' documents retrieved (this is what the AI sees)</div>';
+    d.documents.forEach(function(doc) {
+      var typeColor = {'table_schema':'#58a6ff','column_def':'#8b949e','business_term':'#d29922','convention_rule':'#bc8cff','approved_join':'#f0883e','sql_pattern':'#3fb950','lineage':'#008272'}[doc.doc_type]||'#8b949e';
+      html += '<div style="margin:6px 0;padding:6px 10px;background:#0d1117;border-radius:4px;border-left:3px solid '+typeColor+';font-size:11px;">' +
+        '<span style="color:'+typeColor+';font-weight:700;">'+doc.doc_type+'</span> ' +
+        '<span style="color:#c9d1d9;">'+doc.content.substring(0,200).replace(/\n/g,' ')+'</span></div>';
+    });
+    if (d.prompt_context) {
+      html += '<div style="margin-top:12px;border-top:1px solid #30363d;padding-top:8px;">' +
+        '<div style="font-weight:700;color:#d29922;margin-bottom:4px;">Grounding Context (injected into LLM prompt):</div>' +
+        '<pre style="background:#0d1117;padding:8px;border-radius:4px;font-size:10px;color:#8b949e;max-height:200px;overflow-y:auto;white-space:pre-wrap;">'+d.prompt_context.substring(0,1500)+'</pre></div>';
+    }
+    html += '</div>';
+    st.innerHTML = html;
+  } catch(e) { st.innerHTML = '<div style="color:#da3633;">Query failed: '+e.message+'</div>'; }
+}
+
+function kbShowSourceScan() {
+  var area = document.getElementById('kbUploadArea');
+  area.style.display = 'block';
+  area.innerHTML = '<div style="font-weight:700;color:#f0f6fc;margin-bottom:8px;">Scan Source Database (Greenfield)</div>' +
+    '<div style="color:#8b949e;font-size:12px;margin-bottom:8px;">Connect to your source system (SQL Server, PostgreSQL, etc.) so the AI knows what data exists before building the medallion architecture.</div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">' +
+    '<div style="flex:1;min-width:200px;"><label style="font-size:11px;color:#8b949e;">Source Name</label><input id="kbSrcName" type="text" placeholder="e.g. erp_system" style="width:100%;background:#0d1117;color:#c9d1d9;border:1px solid #30363d;padding:6px 8px;border-radius:4px;"></div>' +
+    '<div style="flex:2;min-width:300px;"><label style="font-size:11px;color:#8b949e;">ODBC Connection String</label><input id="kbSrcConn" type="text" placeholder="Driver={ODBC Driver 17 for SQL Server};Server=...;Database=..." style="width:100%;background:#0d1117;color:#c9d1d9;border:1px solid #30363d;padding:6px 8px;border-radius:4px;"></div></div>' +
+    '<div style="margin-bottom:8px;"><label style="font-size:11px;color:#8b949e;">Or paste JSON source schema</label>' +
+    '<textarea id="kbSrcJSON" rows="5" style="width:100%;background:#0d1117;color:#c9d1d9;border:1px solid #30363d;border-radius:4px;padding:8px;font-family:monospace;font-size:11px;" placeholder=\'[{"table":"customers","schema":"dbo","columns":[{"name":"customer_id","type":"INT"},{"name":"email","type":"VARCHAR(200)","description":"Customer email"}]}]\'></textarea></div>' +
+    '<div style="display:flex;gap:8px;"><button class="btn btn-blue" onclick="kbIngestSource()">Scan & Index</button><button class="btn btn-outline" onclick="document.getElementById(\'kbUploadArea\').style.display=\'none\'">Cancel</button></div>';
+}
+
+async function kbIngestSource() {
+  var st = document.getElementById('kbResults');
+  var conn = document.getElementById('kbSrcConn').value.trim();
+  var name = document.getElementById('kbSrcName').value.trim() || 'source';
+  var jsonRaw = document.getElementById('kbSrcJSON').value.trim();
+  var payload = {};
+
+  if (jsonRaw) {
+    try { payload = {tables: JSON.parse(jsonRaw), source_name: name}; } catch(e) { st.innerHTML = '<div style="color:#da3633;">Invalid JSON: '+e.message+'</div>'; return; }
+  } else if (conn) {
+    payload = {connection_string: conn, source_name: name};
+  } else { st.innerHTML = '<div style="color:#da3633;">Provide a connection string or paste JSON schema.</div>'; return; }
+
+  st.innerHTML = '<div style="color:#58a6ff;">Scanning source "'+name+'"...</div>';
+  try {
+    const r = await fetch(`${FUNC_URL}/api/rag/scan-source?code=${FUNC_KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const d = await r.json();
+    if (d.error) { st.innerHTML = '<div style="color:#da3633;">'+d.error+'</div>'; return; }
+    st.innerHTML = '<div style="background:#0d2818;border:1px solid #238636;border-radius:8px;padding:14px;color:#3fb950;">' +
+      '<b>Source scan complete!</b> Tables: '+d.stats.tables+' | Columns: '+d.stats.columns+' | Total indexed: '+d.stats.total_indexed+'</div>';
+    document.getElementById('kbUploadArea').style.display = 'none';
+    kbRefreshStatus();
+  } catch(e) { st.innerHTML = '<div style="color:#da3633;">Scan failed: '+e.message+'</div>'; }
+}
+
+function kbShowTemplates() {
+  var area = document.getElementById('kbUploadArea');
+  area.style.display = 'block';
+  area.innerHTML = '<div style="font-weight:700;color:#f0f6fc;margin-bottom:8px;">Seed Industry Templates (Greenfield)</div>' +
+    '<div style="color:#8b949e;font-size:12px;margin-bottom:12px;">Pre-load the knowledge base with common schemas, glossary terms, and patterns for your industry. These give the AI a starting point when no client data exists yet.</div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">' +
+    '<label style="background:#161b22;border:1px solid #30363d;border-radius:6px;padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;"><input type="checkbox" class="kbTplCheck" value="retail"><span style="font-size:13px;color:#f0f6fc;">Retail / E-Commerce</span><span style="font-size:10px;color:#8b949e;">(customers, orders, products)</span></label>' +
+    '<label style="background:#161b22;border:1px solid #30363d;border-radius:6px;padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;"><input type="checkbox" class="kbTplCheck" value="finance"><span style="font-size:13px;color:#f0f6fc;">Finance / Banking</span><span style="font-size:10px;color:#8b949e;">(accounts, transactions, rates)</span></label>' +
+    '<label style="background:#161b22;border:1px solid #30363d;border-radius:6px;padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;"><input type="checkbox" class="kbTplCheck" value="healthcare"><span style="font-size:13px;color:#f0f6fc;">Healthcare</span><span style="font-size:10px;color:#8b949e;">(patients, encounters, diagnoses)</span></label>' +
+    '<label style="background:#161b22;border:1px solid #30363d;border-radius:6px;padding:10px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;"><input type="checkbox" class="kbTplCheck" value="saas"><span style="font-size:13px;color:#f0f6fc;">SaaS / Product</span><span style="font-size:10px;color:#8b949e;">(users, events, subscriptions, MRR)</span></label></div>' +
+    '<div style="display:flex;gap:8px;"><button class="btn btn-green" onclick="kbSeedTemplates()">Seed Selected</button><button class="btn btn-outline" onclick="document.getElementById(\'kbUploadArea\').style.display=\'none\'">Cancel</button></div>';
+}
+
+async function kbSeedTemplates() {
+  var checks = document.querySelectorAll('.kbTplCheck:checked');
+  var industries = Array.from(checks).map(function(c){return c.value;});
+  var st = document.getElementById('kbResults');
+  if (industries.length === 0) { st.innerHTML = '<div style="color:#d29922;">Select at least one industry.</div>'; return; }
+  st.innerHTML = '<div style="color:#58a6ff;">Seeding templates for: '+industries.join(', ')+'...</div>';
+  try {
+    const r = await fetch(`${FUNC_URL}/api/rag/seed-templates?code=${FUNC_KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({industries:industries})});
+    const d = await r.json();
+    if (d.error) { st.innerHTML = '<div style="color:#da3633;">'+d.error+'</div>'; return; }
+    var s = d.stats || {};
+    var indText = Object.entries(s.industries||{}).map(function(e){return e[0]+': '+e[1];}).join(', ');
+    st.innerHTML = '<div style="background:#0d2818;border:1px solid #238636;border-radius:8px;padding:14px;color:#3fb950;">' +
+      '<b>Templates seeded!</b> Conventions: '+s.conventions+' | Industries: '+indText+' | Total: '+s.total+'</div>';
+    document.getElementById('kbUploadArea').style.display = 'none';
+    kbRefreshStatus();
+  } catch(e) { st.innerHTML = '<div style="color:#da3633;">Seed failed: '+e.message+'</div>'; }
+}
+
+async function loadOps() {
+  const body = document.getElementById('opsBody');
+  body.innerHTML = '<div style="color:#484f58;padding:20px;">Loading operations data...</div>';
+
+  let dashboard = {};
+  try {
+    const r = await fetch(`${FUNC_URL}/api/ops/dashboard?code=${FUNC_KEY}`);
+    dashboard = await r.json();
+  } catch(e) {
+    body.innerHTML = `<div style="color:#da3633;padding:20px;">Failed to load ops dashboard: ${e.message}</div>`;
+    return;
+  }
+
+  const health = dashboard.overall_health || 'unknown';
+  const healthColor = health === 'healthy' ? '#3fb950' : health === 'warning' ? '#d29922' : '#da3633';
+  const healthIcon = health === 'healthy' ? '&#x2705;' : health === 'warning' ? '&#x26A0;' : '&#x274C;';
+  const warnings = dashboard.warnings || [];
+  const stats = dashboard.agent_stats || {};
+  const pipeStats = stats.pipelines || {};
+  const agents = stats.agents || {};
+  const secrets = dashboard.secret_health || {};
+  const idle = dashboard.synapse_idle || {};
+  const dbCounts = dashboard.db_record_counts || {};
+  const version = dashboard.platform_version || '?';
+  const ts = dashboard.timestamp ? new Date(dashboard.timestamp).toLocaleString() : '-';
+
+  let h = '';
+
+  // ── Top Status Bar ──
+  h += `<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;margin-bottom:16px;border-radius:8px;background:${health==='healthy'?'#0d1117':'#1c1505'};border:1px solid ${healthColor}40;">`;
+  h += `<span style="font-size:24px;">${healthIcon}</span>`;
+  h += `<div><div style="font-weight:700;color:${healthColor};font-size:14px;">Platform: ${health.toUpperCase()}</div>`;
+  h += `<div style="font-size:11px;color:#8b949e;">v${version} &middot; Last check: ${ts}</div></div>`;
+  if (warnings.length > 0) {
+    h += `<div style="margin-left:auto;font-size:11px;color:#d29922;">`;
+    warnings.forEach(w => { h += `<div>&#x26A0; ${w}</div>`; });
+    h += `</div>`;
+  }
+  h += `</div>`;
+
+  // ── Row 1: Pipeline Stats + Synapse Status + Secret Health ──
+  h += '<div class="grid grid-3" style="margin-bottom:16px;">';
+
+  // Pipeline stats card
+  const sr = pipeStats.success_rate || 0;
+  const srColor = sr >= 80 ? '#3fb950' : sr >= 50 ? '#d29922' : '#da3633';
+  h += `<div class="card"><div class="card-header"><span>&#x1F4CA;</span><span class="title">Pipeline Health (7d)</span></div><div class="card-body">`;
+  h += `<div style="text-align:center;margin-bottom:12px;"><div style="font-size:40px;font-weight:800;color:${srColor};">${sr}%</div><div style="font-size:11px;color:#8b949e;">Success Rate</div></div>`;
+  h += `<div class="metric"><span class="label">Total Runs</span><span class="val">${pipeStats.total||0}</span></div>`;
+  h += `<div class="metric"><span class="label">Completed</span><span class="val green">${pipeStats.completed||0}</span></div>`;
+  h += `<div class="metric"><span class="label">Failed</span><span class="val red">${pipeStats.failed||0}</span></div>`;
+  h += `</div></div>`;
+
+  // Synapse status card
+  const poolStatus = idle.pool_status || 'unknown';
+  const poolColor = poolStatus === 'online' ? '#3fb950' : poolStatus === 'paused_or_offline' ? '#d29922' : '#8b949e';
+  const poolIcon = poolStatus === 'online' ? '&#x1F7E2;' : '&#x1F7E1;';
+  const shouldPause = idle.should_pause;
+  h += `<div class="card"><div class="card-header"><span>&#x1F4BB;</span><span class="title">Synapse Pool</span></div><div class="card-body">`;
+  h += `<div style="text-align:center;margin-bottom:12px;"><div style="font-size:20px;">${poolIcon}</div><div style="font-size:14px;font-weight:700;color:${poolColor};">${poolStatus.replace('_',' ').toUpperCase()}</div></div>`;
+  h += `<div class="metric"><span class="label">Reason</span><span class="val" style="font-size:10px;">${idle.reason||'-'}</span></div>`;
+  if (shouldPause) {
+    h += `<div style="margin-top:10px;"><button onclick="pauseSynapse()" style="width:100%;padding:8px;border:none;border-radius:6px;background:#d29922;color:#000;font-weight:700;cursor:pointer;font-size:12px;">&#x23F8; Pause Now (Save ~$29/day)</button></div>`;
+  }
+  h += `</div></div>`;
+
+  // Secret health card
+  const secStatus = secrets.status || 'unknown';
+  const secColor = secStatus === 'healthy' ? '#3fb950' : secStatus === 'warning' ? '#d29922' : '#da3633';
+  const secIcon = secStatus === 'healthy' ? '&#x1F512;' : '&#x26A0;';
+  h += `<div class="card"><div class="card-header"><span>${secIcon}</span><span class="title">Credential Health</span></div><div class="card-body">`;
+  (secrets.secrets || []).forEach(s => {
+    const sColor = s.status === 'valid' || s.status === 'configured' ? '#3fb950' : s.status === 'not_set' ? '#8b949e' : '#da3633';
+    const sIcon = s.status === 'valid' || s.status === 'configured' ? '&#x2705;' : s.status === 'not_set' ? '&#x2796;' : '&#x274C;';
+    h += `<div class="metric"><span class="label">${s.name}</span><span class="val" style="color:${sColor};">${sIcon} ${s.status}</span></div>`;
+  });
+  h += `</div></div>`;
+  h += '</div>';
+
+  // ── Row 2: Agent Performance Table ──
+  h += '<div class="card" style="margin-bottom:16px;"><div class="card-header"><span>&#x1F916;</span><span class="title">Agent Performance (7d)</span></div><div class="card-body">';
+  const agentKeys = Object.keys(agents);
+  if (agentKeys.length > 0) {
+    h += '<table class="hist-table"><thead><tr><th>Agent Step</th><th>Total</th><th>Completed</th><th>Failed</th><th>Avg Duration</th><th>Status</th></tr></thead><tbody>';
+    agentKeys.forEach(name => {
+      const a = agents[name];
+      const failRate = a.total > 0 ? Math.round((a.failed / a.total) * 100) : 0;
+      const cls = failRate === 0 ? 'ok' : failRate < 20 ? 'warn' : 'err';
+      const icon = failRate === 0 ? '&#x2705;' : failRate < 20 ? '&#x26A0;' : '&#x274C;';
+      const dur = a.avg_duration_sec ? `${a.avg_duration_sec}s` : '-';
+      h += `<tr><td style="color:#f0f6fc;font-size:12px;">${name}</td><td>${a.total}</td><td style="color:#3fb950;">${a.completed}</td><td style="color:#da3633;">${a.failed}</td><td style="font-family:Consolas,monospace;font-size:11px;">${dur}</td><td>${icon} <span class="pill ${cls}">${failRate}% fail</span></td></tr>`;
+    });
+    h += '</tbody></table>';
+  } else {
+    h += '<div style="color:#484f58;font-size:12px;padding:8px;">No agent execution data yet. Run a pipeline to see stats.</div>';
+  }
+  h += '</div></div>';
+
+  // ── Row 3: DB Record Counts + Actions ──
+  h += '<div class="grid grid-2" style="margin-bottom:16px;">';
+
+  // DB counts
+  h += '<div class="card"><div class="card-header"><span>&#x1F4BE;</span><span class="title">Config DB Records</span></div><div class="card-body">';
+  Object.keys(dbCounts).forEach(table => {
+    const count = dbCounts[table];
+    h += `<div class="metric"><span class="label">${table}</span><span class="val">${count}</span></div>`;
+  });
+  h += `<div style="margin-top:10px;"><button onclick="runCleanup()" style="width:100%;padding:8px;border:none;border-radius:6px;background:#30363d;color:#f0f6fc;cursor:pointer;font-size:12px;">&#x1F5D1; Run Cleanup (90-day retention)</button></div>`;
+  h += '</div></div>';
+
+  // Actions
+  h += '<div class="card"><div class="card-header"><span>&#x1F527;</span><span class="title">Operations Actions</span></div><div class="card-body">';
+  h += `<button onclick="runRegressionTest()" style="width:100%;padding:10px;margin-bottom:8px;border:none;border-radius:6px;background:#1f6feb;color:#fff;cursor:pointer;font-size:12px;font-weight:600;">&#x1F9EA; Run Prompt Regression Test</button>`;
+  h += `<div style="font-size:10px;color:#484f58;margin-bottom:12px;">Tests 3 known stories through LLM, validates output structure. Catches model drift.</div>`;
+  h += `<button onclick="refreshSecrets()" style="width:100%;padding:10px;margin-bottom:8px;border:none;border-radius:6px;background:#30363d;color:#f0f6fc;cursor:pointer;font-size:12px;">&#x1F512; Re-check Credentials</button>`;
+  h += `<button onclick="loadOps()" style="width:100%;padding:10px;border:none;border-radius:6px;background:#30363d;color:#f0f6fc;cursor:pointer;font-size:12px;">&#x1F504; Refresh Dashboard</button>`;
+  h += '</div></div>';
+  h += '</div>';
+
+  // ── Row 4: Timer Schedules ──
+  h += '<div class="card" style="margin-bottom:16px;"><div class="card-header"><span>&#x23F0;</span><span class="title">Automated Timer Triggers</span></div><div class="card-body">';
+  h += '<table class="hist-table"><thead><tr><th>Timer</th><th>Schedule</th><th>What It Does</th><th>Impact</th></tr></thead><tbody>';
+  h += '<tr><td style="color:#58a6ff;">auto_pause_synapse</td><td>Every 30 min</td><td>Checks for pipeline activity, pauses pool if idle</td><td style="color:#3fb950;">Saves ~$870/mo</td></tr>';
+  h += '<tr><td style="color:#d29922;">secret_health_check</td><td>Daily 8 AM UTC</td><td>Validates ADO PAT, AI key, SQL password</td><td style="color:#d29922;">Teams alert on expiry</td></tr>';
+  h += '<tr><td style="color:#3fb950;">weekly_cleanup</td><td>Sunday 2 AM UTC</td><td>Purges logs > 90d, keeps last 5 artifact versions</td><td style="color:#8b949e;">Prevents DB bloat</td></tr>';
+  h += '</tbody></table>';
+  h += '</div></div>';
+
+  // ── Regression Test Result Area ──
+  h += '<div id="opsRegressionResult"></div>';
+
+  body.innerHTML = h;
+}
+
+// Ops: Pause Synapse
+async function pauseSynapse() {
+  if (!confirm('Pause the Synapse Dedicated SQL Pool? Active queries will be terminated.')) return;
+  try {
+    const r = await fetch(`${FUNC_URL}/api/ops/pause-synapse?code=${FUNC_KEY}`, {method:'POST'});
+    const result = await r.json();
+    alert(`Synapse pause: ${result.status || JSON.stringify(result)}`);
+    loadOps();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+// Ops: Run Cleanup
+async function runCleanup() {
+  if (!confirm('Run DB cleanup? Records older than 90 days will be permanently deleted.')) return;
+  try {
+    const r = await fetch(`${FUNC_URL}/api/ops/cleanup?code=${FUNC_KEY}`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({retention_days:90})});
+    const result = await r.json();
+    const deleted = result.deleted || {};
+    const lines = Object.entries(deleted).map(([k,v])=>`${k}: ${v} records`).join(', ');
+    alert(`Cleanup ${result.status}: ${lines || 'no old records found'}`);
+    loadOps();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+// Ops: Regression Test
+async function runRegressionTest() {
+  const area = document.getElementById('opsRegressionResult');
+  area.innerHTML = '<div style="color:#484f58;padding:12px;">Running 3 regression tests...</div>';
+  try {
+    const r = await fetch(`${FUNC_URL}/api/ops/regression-test?code=${FUNC_KEY}`, {method:'POST'});
+    const result = await r.json();
+    const status = result.status || 'unknown';
+    const color = status === 'pass' ? '#3fb950' : '#da3633';
+    let rh = `<div class="card" style="margin-bottom:16px;border-color:${color}40;"><div class="card-header"><span>${status==='pass'?'&#x2705;':'&#x274C;'}</span><span class="title">Regression Test: ${status.toUpperCase()}</span><span style="margin-left:auto;font-size:11px;color:#8b949e;">${result.passed}/${result.total} passed</span></div><div class="card-body">`;
+    rh += '<table class="hist-table"><thead><tr><th>Test Case</th><th>Status</th><th>Checks</th></tr></thead><tbody>';
+    (result.details || []).forEach(d => {
+      const cls = d.status === 'passed' ? 'ok' : 'err';
+      const icon = d.status === 'passed' ? '&#x2705;' : '&#x274C;';
+      const checks = (d.checks || []).join(', ');
+      rh += `<tr><td style="color:#f0f6fc;">${d.name}</td><td>${icon} <span class="pill ${cls}">${d.status}</span></td><td style="font-size:10px;color:#8b949e;">${checks}</td></tr>`;
+    });
+    rh += '</tbody></table></div></div>';
+    area.innerHTML = rh;
+  } catch(e) { area.innerHTML = `<div style="color:#da3633;padding:12px;">Error: ${e.message}</div>`; }
+}
+
+// Ops: Refresh Secrets
+async function refreshSecrets() {
+  try {
+    const r = await fetch(`${FUNC_URL}/api/ops/secret-health?code=${FUNC_KEY}`);
+    const result = await r.json();
+    const lines = (result.secrets||[]).map(s => `${s.name}: ${s.status}`).join('\n');
+    alert(`Credential Check (${result.status}):\n\n${lines}`);
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+// ACCESS CONTROL
+function loadAccess() {
+  const body = document.getElementById('accessBody');
+  const roles = [
+    {role:'Platform Admin',users:['Admin'],permissions:'Full access — all pages, deploy, delete, manage users',level:'full'},
+    {role:'Data Engineer',users:['Engineers'],permissions:'Pipeline, Catalog, Query Builder, Templates, Dashboard, History, Scheduling',level:'high'},
+    {role:'Business Analyst',users:['Analysts'],permissions:'Query Builder, Data Catalog, Dashboard, Templates (read-only)',level:'medium'},
+    {role:'Viewer',users:['Stakeholders'],permissions:'Dashboard, History (read-only)',level:'low'},
+  ];
+  let h = '<div class="grid grid-2">';
+  roles.forEach(r => {
+    const cls = r.level==='full'?'err':r.level==='high'?'warn':r.level==='medium'?'info':'ok';
+    h += `<div class="card"><div class="card-header"><span>&#x1F464;</span><span class="title">${r.role}</span><span class="pill ${cls}" style="margin-left:auto;">${r.level}</span></div><div class="card-body">
+      <div style="font-size:11px;color:#8b949e;margin-bottom:8px;">${r.permissions}</div>
+      <div style="font-size:10px;color:#484f58;">Assigned: ${r.users.join(', ')}</div>
+    </div></div>`;
+  });
+  h += '</div>';
+  h += '<div style="margin-top:20px;padding:16px;background:#161b22;border:1px solid #30363d;border-radius:8px;"><div style="font-size:12px;color:#8b949e;">&#x1F512; Row-Level Security (RLS) is enforced at the Synapse layer. Each role maps to a database role with filtered access to source schemas.</div></div>';
+  body.innerHTML = h;
+}
+
+// FEEDBACK
+async function loadFeedback() {
+  const body = document.getElementById('feedbackBody');
+  let existing = [];
+  try {
+    const r = await fetch(`${FUNC_URL}/api/feedback?code=${FUNC_KEY}`);
+    const d = await r.json();
+    existing = d.feedback || [];
+  } catch(e) {}
+
+  let h = '<div style="max-width:600px;">';
+  h += '<div style="margin-bottom:16px;"><div style="font-size:12px;font-weight:600;color:#f0f6fc;margin-bottom:6px;">Report an Issue</div>';
+  h += '<textarea id="feedbackText" style="width:100%;min-height:80px;resize:vertical;" placeholder="e.g. The Gold view vw_customer_order_summary shows wrong revenue numbers for Q4..."></textarea></div>';
+  h += '<div style="margin-bottom:16px;"><div style="font-size:12px;font-weight:600;color:#f0f6fc;margin-bottom:6px;">Category</div>';
+  h += '<select id="feedbackCat" style="padding:6px 10px;border-radius:6px;border:1px solid #30363d;background:#0d1117;color:#f0f6fc;font-size:12px;"><option>Data Quality Issue</option><option>Wrong Calculation</option><option>Missing Data</option><option>Performance Issue</option><option>Feature Request</option></select></div>';
+  h += '<div style="margin-bottom:16px;"><div style="font-size:12px;font-weight:600;color:#f0f6fc;margin-bottom:6px;">Affected Object (optional)</div>';
+  h += '<input id="feedbackObj" type="text" style="width:100%;" placeholder="e.g. gold.vw_customer_order_summary"></div>';
+  h += '<button class="btn btn-green" onclick="submitFeedback()">&#x1F4E8; Submit Feedback</button>';
+  h += '<div id="feedbackStatus" style="margin-top:12px;font-size:12px;"></div>';
+  h += '</div>';
+
+  h += '<div style="margin-top:24px;"><div style="font-size:14px;font-weight:700;color:#f0f6fc;margin-bottom:12px;">Recent Feedback</div>';
+  if (existing.length === 0) {
+    h += '<div class="card"><div class="card-body" style="font-size:12px;color:#8b949e;">No feedback yet. When you report issues, the AI agents will use this feedback to improve future deployments.</div></div>';
+  } else {
+    h += '<table class="hist-table"><thead><tr><th>Date</th><th>Category</th><th>Feedback</th><th>Object</th><th>Status</th></tr></thead><tbody>';
+    existing.forEach(f => {
+      const cls = f.status==='resolved'?'ok':f.status==='reviewed'?'warn':'info';
+      h += `<tr><td style="font-size:10px;color:#8b949e;">${(f.created_at||'').substring(0,16)}</td><td><span class="pill ${cls}">${f.category||'General'}</span></td><td style="font-size:11px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.feedback_text}</td><td style="font-family:Consolas,monospace;font-size:10px;">${f.affected_object||'-'}</td><td>${f.status||'open'}</td></tr>`;
+    });
+    h += '</tbody></table>';
+  }
+  h += '</div>';
+  body.innerHTML = h;
+}
+async function submitFeedback() {
+  const text = document.getElementById('feedbackText').value.trim();
+  if (!text) return;
+  const cat = document.getElementById('feedbackCat').value;
+  const obj = document.getElementById('feedbackObj').value.trim();
+  try {
+    await fetch(`${FUNC_URL}/api/feedback?code=${FUNC_KEY}`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text, category:cat, affected_object:obj})});
+    document.getElementById('feedbackStatus').innerHTML = '<span style="color:#3fb950;">Submitted! AI agents will use this in future runs.</span>';
+    document.getElementById('feedbackText').value = '';
+    setTimeout(() => loadFeedback(), 500);
+  } catch(e) { document.getElementById('feedbackStatus').innerHTML = `<span style="color:#da3633;">${e.message}</span>`; }
+}
+
+// CONNECTORS
+async function loadConnectors() {
+  const body = document.getElementById('connectorsBody');
+  body.innerHTML = '<div style="color:#484f58;padding:20px;">Loading connectors...</div>';
+  let connectors = [];
+  try {
+    const r = await fetch(`${FUNC_URL}/api/connectors?code=${FUNC_KEY}`);
+    const d = await r.json();
+    connectors = d.connectors || [];
+  } catch(e) {}
+
+  const TYPES = [
+    {id:'azure_sql',name:'Azure SQL',icon:'&#x1F4BE;',desc:'Connect to Azure SQL Database, SQL MI, or on-prem SQL Server',
+     steps:[
+       'Go to <b>Azure Portal</b> &rarr; your SQL Server resource &rarr; <b>Overview</b>',
+       'Copy the <b>Server name</b> (e.g. <code>myserver.database.windows.net</code>)',
+       'Go to <b>Settings &rarr; SQL Databases</b> and note the <b>Database name</b>',
+       'For auth, use SQL admin credentials or create a dedicated login:<br><code>CREATE LOGIN bi_reader WITH PASSWORD = \'...\'; CREATE USER bi_reader FOR LOGIN bi_reader; GRANT SELECT TO bi_reader;</code>',
+       'Store the full connection string in <b>Key Vault</b> (recommended) or paste in config:<br><code>{"connection_string": "Server=tcp:myserver.database.windows.net,1433;Database=mydb;User ID=bi_reader;Password=...;Encrypt=yes;"}</code>',
+       'If behind a firewall, add the Function App outbound IPs to <b>SQL Server &rarr; Networking &rarr; Firewall rules</b>',
+     ]},
+    {id:'rest_api',name:'REST API',icon:'&#x1F310;',desc:'Pull data from any REST endpoint (JSON/XML)',
+     steps:[
+       'Identify the <b>API base URL</b> that returns the data you need (e.g. <code>https://api.example.com/v2/sales</code>)',
+       'Check the API docs for required <b>authentication</b>: API key, OAuth token, or Basic auth',
+       'For API key auth, add to headers:<br><code>{"base_url":"https://api.example.com/v2/sales", "headers":{"Authorization":"Bearer YOUR_TOKEN"}}</code>',
+       'Store the API key/token in <b>Key Vault</b> and reference the secret name below',
+       'Test the URL in your browser or Postman first &mdash; response should be JSON with an array of records',
+       'The platform looks for data under: <code>value</code>, <code>data</code>, <code>results</code>, <code>items</code>, or top-level array',
+     ]},
+    {id:'csv_upload',name:'CSV Upload',icon:'&#x1F4C4;',desc:'Upload CSV files for one-time or periodic ingestion',
+     steps:[
+       'Prepare your CSV with a <b>header row</b> as the first line',
+       'Paste the CSV content directly into the config:<br><code>{"content":"customer_id,name,email\\n1,John,john@co.com\\n2,Jane,jane@co.com"}</code>',
+       'For large files: upload to <b>Azure Blob Storage</b> and use the Azure Blob connector instead',
+       'Column names become the schema &mdash; ensure they are clean (no spaces or special chars)',
+     ]},
+    {id:'azure_blob',name:'Azure Blob / ADLS',icon:'&#x2601;',desc:'Connect to Azure Blob Storage or ADLS Gen2',
+     steps:[
+       'Go to <b>Azure Portal</b> &rarr; your Storage Account &rarr; <b>Overview</b>',
+       'Copy the <b>Storage account name</b>',
+       'Go to <b>Containers</b> and note the container name where your files live',
+       'For auth: go to <b>Access keys</b> and copy Key 1, or use <b>Shared Access Signature (SAS)</b> with Read + List permissions',
+       'Config format:<br><code>{"storage_account":"mystorageacct","container":"rawdata","path":"sales/2026/","sas_token":"?sv=2022-..."}</code>',
+       'Alternatively, grant the Function App managed identity <b>Storage Blob Data Reader</b> role (no key needed)',
+     ]},
+    {id:'snowflake',name:'Snowflake',icon:'&#x2744;',desc:'Cross-cloud ingestion from Snowflake warehouses',
+     steps:[
+       'Log into <b>Snowflake</b> &rarr; <b>Admin &rarr; Accounts</b> and copy your <b>Account Identifier</b> (e.g. <code>xy12345.east-us-2.azure</code>)',
+       'Note the <b>Database</b>, <b>Schema</b>, and <b>Warehouse</b> names',
+       'Create a read-only service user:<br><code>CREATE USER bi_svc PASSWORD=\'...\' DEFAULT_ROLE=PUBLIC; GRANT SELECT ON DATABASE mydb TO ROLE PUBLIC;</code>',
+       'Config format:<br><code>{"account":"xy12345.east-us-2.azure","database":"SALES","schema":"PUBLIC","warehouse":"COMPUTE_WH","user":"bi_svc"}</code>',
+       'Store the password in <b>Key Vault</b> and reference the secret name below',
+       '<b>Note:</b> Requires <code>snowflake-connector-python</code> package (not included in base deployment)',
+     ]},
+    {id:'sap',name:'SAP / Enterprise',icon:'&#x1F3E2;',desc:'Connect to SAP ERP, Oracle, or other enterprise systems',
+     steps:[
+       'Work with your <b>SAP Basis team</b> to get RFC connection details: hostname, system number, client ID',
+       'Request a <b>service user</b> with read-only authorization for the required RFC function modules (e.g. <code>RFC_READ_TABLE</code>)',
+       'Config format:<br><code>{"host":"sap.example.com","sysnr":"00","client":"100","user":"BI_SVC"}</code>',
+       'Store the password in <b>Key Vault</b>',
+       'For <b>Oracle</b>: use connection string format:<br><code>{"connection_string":"oracle+cx_oracle://user:pass@host:1521/ORCL"}</code>',
+       '<b>Note:</b> Requires <code>pyrfc</code> (SAP) or <code>cx_Oracle</code> (Oracle) package',
+     ]},
+  ];
+
+  let h = '<div style="font-size:12px;font-weight:700;color:#f0f6fc;margin-bottom:12px;">Supported Connector Types — click a card for setup instructions</div>';
+  h += '<div class="grid grid-3" style="margin-bottom:24px;">';
+  TYPES.forEach(t => {
+    h += `<div class="card" style="cursor:pointer;" onclick="showAddConnector('${t.id}','${t.name}')"><div class="card-body" style="text-align:center;padding:16px;">
+      <div style="font-size:28px;margin-bottom:6px;">${t.icon}</div>
+      <div style="font-size:13px;font-weight:600;color:#f0f6fc;">${t.name}</div>
+      <div style="font-size:10px;color:#8b949e;margin-top:4px;">${t.desc}</div>
+    </div></div>`;
+  });
+  h += '</div>';
+
+  // Setup instructions panel (hidden until a type is clicked)
+  h += '<div id="connSetupGuide" style="display:none;margin-bottom:20px;padding:16px;background:#0d1117;border:1px solid #238636;border-radius:8px;">';
+  h += '<div style="font-size:13px;font-weight:700;color:#3fb950;margin-bottom:8px;" id="connGuideTitle">Setup Guide</div>';
+  h += '<ol id="connGuideSteps" style="font-size:12px;color:#c9d1d9;line-height:2;padding-left:20px;"></ol>';
+  h += '</div>';
+
+  // Store TYPES globally for showAddConnector
+  window._CONN_TYPES = {};
+  TYPES.forEach(t => { window._CONN_TYPES[t.id] = t; });
+
+  h += '<div id="addConnectorForm" style="display:none;margin-bottom:20px;padding:16px;background:#161b22;border:1px solid #30363d;border-radius:8px;">';
+  h += '<div style="font-size:13px;font-weight:700;color:#f0f6fc;margin-bottom:8px;" id="connFormTitle">Add Connector</div>';
+  h += '<div class="grid grid-2" style="gap:8px;margin-bottom:8px;">';
+  h += '<div><div style="font-size:11px;color:#484f58;margin-bottom:4px;">Name</div><input id="connName" style="width:100%;" placeholder="e.g. SalesDB_Prod"></div>';
+  h += '<div><div style="font-size:11px;color:#484f58;margin-bottom:4px;">Type</div><input id="connType" style="width:100%;" readonly></div>';
+  h += '</div>';
+  h += '<div style="margin-bottom:8px;"><div style="font-size:11px;color:#484f58;margin-bottom:4px;">Connection Config (JSON)</div><textarea id="connConfig" style="width:100%;min-height:60px;font-family:Consolas,monospace;font-size:11px;" placeholder=\'{"base_url":"https://api.example.com/data"}\'></textarea></div>';
+  h += '<div style="margin-bottom:8px;"><div style="font-size:11px;color:#484f58;margin-bottom:4px;">Key Vault Secret Name (for credentials)</div><input id="connKV" style="width:100%;" placeholder="e.g. salesdb-connection-string"></div>';
+  h += '<button class="btn btn-blue btn-sm" onclick="registerConnector()">Register</button> <span id="connStatus" style="font-size:11px;"></span>';
+  h += '</div>';
+
+  if (connectors.length > 0) {
+    h += '<div style="font-size:12px;font-weight:700;color:#f0f6fc;margin-bottom:8px;">Registered Connectors</div>';
+    h += '<table class="hist-table"><thead><tr><th>Name</th><th>Type</th><th>Status</th><th>Last Tested</th><th>Actions</th></tr></thead><tbody>';
+    connectors.forEach(c => {
+      const cls = c.status==='active'?'ok':c.status==='error'?'err':'info';
+      h += `<tr><td style="color:#f0f6fc;">${c.name}</td><td>${c.connector_type}</td><td><span class="pill ${cls}">${c.status}</span></td><td style="font-size:10px;color:#8b949e;">${c.last_tested_at||'Never'}</td><td><button class="btn btn-sm" onclick="testConnector(${c.id})">Test</button></td></tr>`;
+    });
+    h += '</tbody></table>';
+  }
+  body.innerHTML = h;
+}
+function showAddConnector(type, name) {
+  // Show setup guide
+  const t = window._CONN_TYPES[type];
+  if (t && t.steps) {
+    document.getElementById('connSetupGuide').style.display = 'block';
+    document.getElementById('connGuideTitle').innerHTML = `&#x1F4D6; ${name} — Setup Guide`;
+    document.getElementById('connGuideSteps').innerHTML = t.steps.map(s => `<li style="margin-bottom:4px;">${s}</li>`).join('');
+  }
+  // Show form
+  document.getElementById('addConnectorForm').style.display = 'block';
+  document.getElementById('connType').value = type;
+  document.getElementById('connFormTitle').textContent = `Add ${name} Connector`;
+  const hints = {azure_sql:'{"connection_string":"Server=tcp:myserver.database.windows.net,1433;Database=mydb;User ID=...;Password=...;Encrypt=yes;"}', rest_api:'{"base_url":"https://api.example.com/v2/data","headers":{"Authorization":"Bearer YOUR_TOKEN"}}', csv_upload:'{"content":"col1,col2\\nval1,val2"}', azure_blob:'{"storage_account":"mystorageacct","container":"rawdata","path":"sales/"}', snowflake:'{"account":"xy12345.east-us-2.azure","database":"SALES","schema":"PUBLIC","warehouse":"COMPUTE_WH","user":"bi_svc"}', sap:'{"host":"sap.example.com","sysnr":"00","client":"100","user":"BI_SVC"}'};
+  document.getElementById('connConfig').placeholder = hints[type] || '{}';
+  // Scroll to guide
+  document.getElementById('connSetupGuide').scrollIntoView({behavior:'smooth', block:'start'});
+}
+async function registerConnector() {
+  const name = document.getElementById('connName').value.trim();
+  const type = document.getElementById('connType').value;
+  let cfg = {};
+  try { cfg = JSON.parse(document.getElementById('connConfig').value || '{}'); } catch(e) { document.getElementById('connStatus').innerHTML = '<span style="color:#da3633;">Invalid JSON</span>'; return; }
+  if (!name) return;
+  try {
+    const r = await fetch(`${FUNC_URL}/api/connectors?code=${FUNC_KEY}`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name, connector_type:type, config:cfg, key_vault_secret:document.getElementById('connKV').value.trim()})});
+    const d = await r.json();
+    document.getElementById('connStatus').innerHTML = d.error ? `<span style="color:#da3633;">${d.error}</span>` : '<span style="color:#3fb950;">Registered!</span>';
+    if (!d.error) setTimeout(() => loadConnectors(), 500);
+  } catch(e) { document.getElementById('connStatus').innerHTML = `<span style="color:#da3633;">${e.message}</span>`; }
+}
+async function testConnector(id) {
+  try {
+    const r = await fetch(`${FUNC_URL}/api/connectors?code=${FUNC_KEY}`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'test', connector_id:id})});
+    const d = await r.json();
+    alert(d.ok ? 'Connection successful!' : `Connection failed: ${d.error || d.note || 'unknown'}`);
+    loadConnectors();
+  } catch(e) { alert('Test failed: ' + e.message); }
+}
+
+// COLUMN LINEAGE
+async function loadColumnLineage() {
+  const body = document.getElementById('lineageBody');
+  body.innerHTML = '<div style="color:#484f58;padding:20px;">Loading column lineage...</div>';
+  let graph = {layers:{}, edges:[]};
+  try {
+    const r = await fetch(`${FUNC_URL}/api/column-lineage?code=${FUNC_KEY}`);
+    graph = await r.json();
+  } catch(e) {}
+
+  const layers = graph.layers || {};
+  const edges = graph.edges || [];
+
+  if (edges.length === 0) {
+    let h = '<div class="card"><div class="card-body"><div style="color:#8b949e;">No column lineage data yet. Lineage is auto-recorded when pipelines run.</div>';
+    h += '<div style="margin-top:12px;font-size:12px;color:#484f58;">Run a pipeline to see column-level transformations across Source &rarr; Bronze &rarr; Silver &rarr; Gold layers.</div>';
+    h += '</div></div>';
+    h += '<div style="margin-top:20px;"><div class="card"><div class="card-header"><span>&#x1F517;</span><span class="title">How Column Lineage Works</span></div><div class="card-body">';
+    h += '<div style="font-size:12px;color:#c9d1d9;line-height:1.8;">';
+    h += '1. When the <span style="color:#58a6ff;">Developer Agent</span> generates SQL, column mappings are automatically extracted.<br>';
+    h += '2. Each column is tracked from <span style="color:#3fb950;">source</span> through <span style="color:#d29922;">bronze</span>, <span style="color:#58a6ff;">silver</span>, and <span style="color:#bc8cff;">gold</span>.<br>';
+    h += '3. Transformations (SUM, COUNT, CAST, etc.) are recorded on each edge.<br>';
+    h += '4. Use this page to trace any metric back to its source column.';
+    h += '</div></div></div></div>';
+    body.innerHTML = h;
+    return;
+  }
+
+  let h = '<div style="display:flex;gap:16px;overflow-x:auto;padding-bottom:16px;">';
+  const layerOrder = ['source','bronze','silver','gold'];
+  const layerColors = {source:'#3fb950', bronze:'#d29922', silver:'#58a6ff', gold:'#bc8cff'};
+  layerOrder.forEach(layerName => {
+    const tables = layers[layerName] || {};
+    h += `<div style="min-width:220px;flex-shrink:0;">`;
+    h += `<div style="font-size:11px;font-weight:700;text-transform:uppercase;color:${layerColors[layerName]||'#8b949e'};margin-bottom:8px;letter-spacing:1px;">${layerName}</div>`;
+    Object.entries(tables).forEach(([tbl, cols]) => {
+      h += `<div class="card" style="margin-bottom:8px;"><div class="card-body" style="padding:8px 12px;">`;
+      h += `<div style="font-size:11px;font-weight:600;color:#f0f6fc;margin-bottom:4px;">${tbl}</div>`;
+      (cols||[]).forEach(col => {
+        // Check if this column has a transformation
+        const edge = edges.find(e => e.to && e.to.endsWith('.'+col) && e.to.includes(layerName));
+        const txLabel = edge && edge.transformation !== 'direct' ? `<span style="color:#d29922;font-size:9px;margin-left:4px;">${edge.transformation}</span>` : '';
+        h += `<div style="font-size:10px;color:#8b949e;padding:1px 0;font-family:Consolas,monospace;">${col}${txLabel}</div>`;
+      });
+      h += `</div></div>`;
+    });
+    h += `</div>`;
+  });
+  h += '</div>';
+  h += `<div style="margin-top:12px;font-size:11px;color:#484f58;">${edges.length} column mappings tracked</div>`;
+  body.innerHTML = h;
+}
+
+// INPUT MODE TOGGLE
+window._inputMode = 'ado';
+function setInputMode(mode) {
+  window._inputMode = mode;
+  document.getElementById('adoInput').style.display = mode === 'ado' ? 'flex' : 'none';
+  document.getElementById('freeTextInput').style.display = mode === 'text' ? 'flex' : 'none';
+  document.getElementById('btnModeADO').className = mode === 'ado' ? 'btn btn-sm' : 'btn btn-outline btn-sm';
+  document.getElementById('btnModeADO').style.background = mode === 'ado' ? '#1f6feb' : '';
+  document.getElementById('btnModeADO').style.color = mode === 'ado' ? '#fff' : '';
+  document.getElementById('btnModeText').className = mode === 'text' ? 'btn btn-sm' : 'btn btn-outline btn-sm';
+  document.getElementById('btnModeText').style.background = mode === 'text' ? '#1f6feb' : '';
+  document.getElementById('btnModeText').style.color = mode === 'text' ? '#fff' : '';
+}
+
+// ENGINE CONFIG PANEL
+function toggleEnginePanel() {
+  var p = document.getElementById('enginePanel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+function onEngineChange() {
+  var e = document.getElementById('cfgEngine').value;
+  document.getElementById('cfgDbxUrl').style.display = e === 'databricks' ? 'block' : 'none';
+  document.getElementById('cfgSparkPool').style.display = e === 'synapse_spark' ? 'block' : 'none';
+}
+function onLoadPatternChange() {
+  var lp = document.getElementById('cfgLoadPattern').value;
+  document.getElementById('cfgIncrCol').style.display = lp === 'incremental' ? 'block' : 'none';
+  document.getElementById('cfgMergeKeys').style.display = (lp === 'merge_scd1' || lp === 'merge_scd2') ? 'block' : 'none';
+  document.getElementById('cfgScd2Cols').style.display = lp === 'merge_scd2' ? 'block' : 'none';
+}
+function getEngineSettings() {
+  return {
+    pipeline_engine: document.getElementById('cfgEngine').value,
+    load_pattern: document.getElementById('cfgLoadPattern').value,
+    incremental_column: (document.getElementById('cfgIncrementalCol')||{}).value || '',
+    merge_key_columns: ((document.getElementById('cfgMergeKeyCols')||{}).value || '').split(',').map(s=>s.trim()).filter(Boolean),
+    scd2_tracked_columns: ((document.getElementById('cfgScd2TrackedCols')||{}).value || '').split(',').map(s=>s.trim()).filter(Boolean),
+    databricks_workspace_url: (document.getElementById('cfgDatabricksUrl')||{}).value || '',
+    spark_pool_name: (document.getElementById('cfgSparkPoolName')||{}).value || '',
+  };
+}
+function useCommanderMode() {
+  var sel = document.getElementById('cfgOrchestration');
+  return sel ? sel.value === 'commander' : true;
+}
+
+// POWER BI DOWNLOAD
+async function downloadPBI(storyId) {
+  try {
+    const r = await fetch(`${FUNC_URL}/api/generate-pbi?code=${FUNC_KEY}`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({story_id:storyId||''})});
+    const d = await r.json();
+    if (d.error) { alert(d.error); return; }
+    const blob = new Blob([JSON.stringify(d, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = `pbi_dataset_${storyId||'platform'}.json`; a.click();
+    URL.revokeObjectURL(url);
+  } catch(e) { alert('Failed: ' + e.message); }
+}
+
+renderNodes(null); addLog('info','Waiting for pipeline...');
+
+// ═══════════════════════════════════════
+// TESTING PAGE
+// ═══════════════════════════════════════
+let testPollTimer = null, testInstanceId = null, testStartTime = null;
+let _selectedTestType = null;
+let _customCategories = [];
+let _testCases = [];
+let _apiCategories = [];
+
+function loadTesting() {
+  // Reset state
+  window._lastTestSteps = {};
+  window._testReviewShown = false;
+  window._testReviewApproved = false;
+  window._agentJobQueued = false;
+  window._agentLogSince = 0;
+  if (window._agentLogTimer) clearInterval(window._agentLogTimer);
+  window._agentLogTimer = null;
+  _selectedTestType = null;
+  _customCategories = [];
+  _testCases = [];
+
+  document.getElementById('testingBody').innerHTML = `<div style="display:flex;gap:20px;">
+    <div style="flex:1;">
+      <!-- Step 1: Story ID -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header"><span>&#x1F4CB;</span><span class="title">Step 1: Story</span></div>
+        <div class="card-body" style="padding:16px;">
+          <div style="font-size:11px;color:#484f58;margin-bottom:4px;">ADO Story / Work Item ID</div>
+          <div style="display:flex;gap:10px;align-items:center;">
+            <input type="text" id="testStoryId" placeholder="e.g. 515677" style="width:160px;" oninput="onTestStoryChange()">
+            <div id="testStoryInfo" style="font-size:11px;color:#8b949e;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: Test Type Selection -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header"><span>&#x1F3AF;</span><span class="title">Step 2: Test Type</span></div>
+        <div class="card-body" style="padding:16px;">
+          <div style="display:flex;gap:12px;">
+            <div id="btnTestUI" onclick="selectTestType('ui')" style="flex:1;padding:16px;border-radius:8px;border:2px solid #30363d;cursor:pointer;text-align:center;transition:all 0.2s;">
+              <div style="font-size:24px;margin-bottom:6px;">&#x1F5A5;</div>
+              <div style="font-size:13px;font-weight:700;color:#f0f6fc;">UI Testing</div>
+              <div style="font-size:10px;color:#8b949e;margin-top:4px;">Playwright drives browser on your machine in real-time</div>
+            </div>
+            <div id="btnTestData" onclick="selectTestType('data')" style="flex:1;padding:16px;border-radius:8px;border:2px solid #30363d;cursor:pointer;text-align:center;transition:all 0.2s;">
+              <div style="font-size:24px;margin-bottom:6px;">&#x1F4CA;</div>
+              <div style="font-size:13px;font-weight:700;color:#f0f6fc;">Data Testing</div>
+              <div style="font-size:10px;color:#8b949e;margin-top:4px;">SQL validation tests run server-side against Synapse</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Conditional - UI Testing needs App URL -->
+      <div class="card" id="testUIConfig" style="margin-bottom:16px;display:none;">
+        <div class="card-header"><span>&#x1F310;</span><span class="title">Step 3: Application URL</span></div>
+        <div class="card-body" style="padding:16px;">
+          <div style="font-size:11px;color:#484f58;margin-bottom:4px;">Power App / Web Application URL</div>
+          <input type="text" id="testAppUrl" placeholder="https://apps.powerapps.com/play/e/..." style="width:100%;margin-bottom:10px;" oninput="onAppUrlChange()">
+          <div style="font-size:10px;color:#484f58;">The local agent will open this URL in Edge and execute Playwright scripts while you watch.</div>
+        </div>
+      </div>
+
+      <!-- Step 3 (Data): Categories shown when Data selected -->
+      <div class="card" id="testDataConfig" style="margin-bottom:16px;display:none;">
+        <div class="card-header"><span>&#x1F3F7;</span><span class="title">Step 3: Data Test Categories</span><span style="margin-left:auto;font-size:10px;color:#8b949e;">Based on story #<span id="dataCatStoryId">---</span></span></div>
+        <div class="card-body" style="padding:0;" id="dataCatBody"></div>
+        <div style="padding:10px 16px;border-top:1px solid #21262d;">
+          <div style="font-size:11px;color:#58a6ff;font-weight:600;margin-bottom:6px;">&#x2795; Add Custom Test Requirement</div>
+          <div style="display:flex;gap:8px;">
+            <input type="text" id="customCatInput" placeholder="e.g. Verify revenue excludes cancelled orders" style="flex:1;font-size:11px;padding:6px 10px;">
+            <button class="btn btn-outline btn-sm" onclick="addCustomCategory()">Add</button>
+          </div>
+          <div id="customCatList" style="margin-top:8px;"></div>
+        </div>
+      </div>
+
+      <!-- Run Button -->
+      <div id="testRunSection" style="display:none;">
+        <button class="btn btn-green" id="btnRunTest" onclick="startTestRun()" style="padding:10px 24px;font-size:13px;">&#x25B6; Run Tests</button>
+        <span id="testRunInfo" style="margin-left:12px;font-size:11px;color:#8b949e;"></span>
+      </div>
+
+      <!-- Test Progress -->
+      <div class="card" id="testProgressCard" style="margin-top:16px;display:none;">
+        <div class="card-header"><span>&#x1F4CA;</span><span class="title">Test Progress</span></div>
+        <div class="card-body" style="padding:16px;" id="testProgressBody"></div>
+      </div>
+
+      <!-- Human Review Gate -->
+      <div class="card" id="testReviewCard" style="margin-top:16px;display:none;">
+        <div class="card-header" style="background:#d2992210;">
+          <span>&#x23F8;</span>
+          <span class="title" style="color:#d29922;">Human Review Required</span>
+          <span style="margin-left:auto;font-size:10px;color:#8b949e;">ADO Test Plan #<span id="reviewTestPlanId"></span></span>
+        </div>
+        <div class="card-body" style="padding:0;" id="testReviewBody"></div>
+        <div style="padding:12px 16px;border-top:1px solid #21262d;display:flex;gap:10px;align-items:center;" id="reviewActions">
+          <button class="btn btn-green" onclick="approveTestPlan()">&#x2705; Approve &amp; Execute</button>
+          <button class="btn" style="background:#da3633;color:#fff;" onclick="declineTestPlan()">&#x1F6AB; Decline</button>
+          <span id="reviewNote" style="font-size:11px;color:#8b949e;margin-left:auto;">Review the test cases above before execution</span>
+        </div>
+      </div>
+
+      <!-- Live Test Case Execution -->
+      <div class="card" id="testLiveCard" style="margin-top:16px;display:none;">
+        <div class="card-header"><span>&#x1F3AF;</span><span class="title">Test Execution</span><span id="liveCounter" style="margin-left:auto;font-size:11px;color:#8b949e;"></span></div>
+        <div class="card-body" style="padding:0;" id="testLiveBody"></div>
+      </div>
+
+      <!-- Test Results -->
+      <div class="card" id="testResultsCard" style="margin-top:16px;display:none;">
+        <div class="card-header"><span>&#x2705;</span><span class="title">Test Results</span></div>
+        <div class="card-body" style="padding:16px;" id="testResultsBody"></div>
+      </div>
+    </div>
+
+    <!-- Right: Test Log -->
+    <div style="width:420px;background:#010409;border:1px solid #30363d;border-radius:8px;display:flex;flex-direction:column;max-height:700px;">
+      <div style="padding:8px 12px;border-bottom:1px solid #30363d;font-size:11px;color:#8b949e;display:flex;align-items:center;gap:6px;">
+        <span style="display:inline-block;width:8px;height:8px;background:#da3633;border-radius:50%;"></span>
+        <span style="display:inline-block;width:8px;height:8px;background:#d29922;border-radius:50%;"></span>
+        <span style="display:inline-block;width:8px;height:8px;background:#238636;border-radius:50%;"></span>
+        <span style="margin-left:8px;">test.log</span>
+        <span id="testLogDot" style="display:none;margin-left:auto;width:6px;height:6px;background:#238636;border-radius:50%;animation:pulse 1.5s infinite;"></span>
+      </div>
+      <div id="testLogBody" style="flex:1;overflow-y:auto;padding:8px 12px;font-family:Consolas,monospace;font-size:11px;line-height:1.6;color:#484f58;">Ready. Select a story and test type to begin.</div>
+    </div>
+  </div>`;
+  loadTestCategories();
+}
+
+// ── Data Test Category Management ──
+
+async function loadTestCategories() {
+  try {
+    const resp = await fetch(`${FUNC_URL}/api/test-categories?code=${FUNC_KEY}`);
+    const data = await resp.json();
+    _apiCategories = data.categories || [];
+    renderCategories(_apiCategories);
+  } catch(e) {
+    const el = document.getElementById('dataCatBody');
+    if (el) el.innerHTML = '<div style="padding:8px 16px;color:#da3633;font-size:12px;">Failed to load categories</div>';
+  }
+}
+
+function renderCategories(categories) {
+  const body = document.getElementById('dataCatBody');
+  if (!body) return;
+  if (!categories.length) {
+    body.innerHTML = '<div style="padding:8px 16px;color:#484f58;font-size:12px;">No categories defined</div>';
+    return;
+  }
+  let h = '';
+  for (const c of categories) {
+    const toggleColor = c.enabled ? '#238636' : '#484f58';
+    const toggleLabel = c.enabled ? 'ON' : 'OFF';
+    h += `<div style="display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid #21262d;">
+      <span onclick="toggleCategory('${c.id}',${!c.enabled})" style="font-size:10px;padding:2px 6px;border-radius:4px;background:${toggleColor}22;color:${toggleColor};border:1px solid ${toggleColor}44;font-weight:600;cursor:pointer;min-width:28px;text-align:center;">${toggleLabel}</span>
+      <div style="flex:1;"><div style="font-size:12px;color:#f0f6fc;font-weight:600;">${c.name}</div><div style="font-size:10px;color:#8b949e;">${c.description || ''}</div></div>
+      <span class="pill info" style="font-size:9px;">default</span>
+      <span onclick="deleteCategory('${c.id}')" style="cursor:pointer;color:#484f58;font-size:14px;" title="Delete">&times;</span>
+    </div>`;
+  }
+  body.innerHTML = h;
+}
+
+async function toggleCategory(id, enabled) {
+  await fetch(`${FUNC_URL}/api/test-categories?code=${FUNC_KEY}`, {
+    method:'PUT', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({id, enabled}),
+  });
+  loadTestCategories();
+}
+
+async function deleteCategory(id) {
+  if (!confirm(`Delete category "${id}"?`)) return;
+  await fetch(`${FUNC_URL}/api/test-categories?id=${id}&code=${FUNC_KEY}`, {method:'DELETE'});
+  loadTestCategories();
+}
+
+function addCustomCategory() {
+  const input = document.getElementById('customCatInput');
+  if (!input) return;
+  const text = input.value.trim();
+  if (!text) return;
+  _customCategories.push(text);
+  input.value = '';
+  renderCustomCategories();
+}
+
+function removeCustomCategory(idx) {
+  _customCategories.splice(idx, 1);
+  renderCustomCategories();
+}
+
+function renderCustomCategories() {
+  const el = document.getElementById('customCatList');
+  if (!el) return;
+  el.innerHTML = _customCategories.map((c, i) => `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #21262d;">
+    <span style="font-size:10px;padding:2px 6px;border-radius:4px;background:#58a6ff22;color:#58a6ff;border:1px solid #58a6ff44;font-weight:600;">ON</span>
+    <div style="flex:1;font-size:11px;color:#f0f6fc;">${c}</div>
+    <span class="pill warn" style="font-size:9px;">custom</span>
+    <span onclick="removeCustomCategory(${i})" style="cursor:pointer;color:#484f58;font-size:14px;" title="Remove">&times;</span>
+  </div>`).join('');
+}
+
+// ── Step Flow UI Functions ──
+
+function selectTestType(type) {
+  _selectedTestType = type;
+  const uiBtn = document.getElementById('btnTestUI');
+  const dataBtn = document.getElementById('btnTestData');
+  const uiCfg = document.getElementById('testUIConfig');
+  const dataCfg = document.getElementById('testDataConfig');
+  const runSection = document.getElementById('testRunSection');
+  const reviewCard = document.getElementById('testReviewCard');
+  const liveCard = document.getElementById('testLiveCard');
+  const resultsCard = document.getElementById('testResultsCard');
+  const progressCard = document.getElementById('testProgressCard');
+  if (reviewCard) reviewCard.style.display = 'none';
+  if (liveCard) liveCard.style.display = 'none';
+  if (resultsCard) resultsCard.style.display = 'none';
+  if (progressCard) progressCard.style.display = 'none';
+
+  uiBtn.style.borderColor = type === 'ui' ? '#58a6ff' : '#30363d';
+  uiBtn.style.background = type === 'ui' ? '#58a6ff15' : 'transparent';
+  dataBtn.style.borderColor = type === 'data' ? '#238636' : '#30363d';
+  dataBtn.style.background = type === 'data' ? '#23863615' : 'transparent';
+
+  if (type === 'ui') {
+    uiCfg.style.display = 'block';
+    dataCfg.style.display = 'none';
+    const url = document.getElementById('testAppUrl')?.value?.trim();
+    runSection.style.display = url ? 'block' : 'none';
+    document.getElementById('testRunInfo').textContent = 'Agent will open Edge and drive Playwright on your machine';
+  } else {
+    uiCfg.style.display = 'none';
+    dataCfg.style.display = 'block';
+    const storyId = document.getElementById('testStoryId')?.value || '---';
+    document.getElementById('dataCatStoryId').textContent = storyId;
+    runSection.style.display = 'block';
+    document.getElementById('testRunInfo').textContent = 'SQL tests will run server-side against Synapse layers';
+  }
+}
+
+function onTestStoryChange() {
+  const sid = document.getElementById('testStoryId').value.trim();
+  const info = document.getElementById('testStoryInfo');
+  if (sid) {
+    info.innerHTML = '<span style="color:#8b949e;">Story ID set</span>';
+  } else {
+    info.innerHTML = '';
+  }
+  if (document.getElementById('dataCatStoryId')) {
+    document.getElementById('dataCatStoryId').textContent = sid || '---';
+  }
+}
+
+function onAppUrlChange() {
+  const url = document.getElementById('testAppUrl').value.trim();
+  const runSection = document.getElementById('testRunSection');
+  if (_selectedTestType === 'ui') {
+    runSection.style.display = url ? 'block' : 'none';
+  }
+}
+
+// ── Agent Live Log Polling ──
+
+function startAgentLogPolling(instanceId) {
+  window._agentLogSince = 0;
+  if (window._agentLogTimer) clearInterval(window._agentLogTimer);
+  window._agentLogTimer = setInterval(() => pollAgentLogs(instanceId), 2000);
+}
+
+function stopAgentLogPolling() {
+  if (window._agentLogTimer) {
+    clearInterval(window._agentLogTimer);
+    window._agentLogTimer = null;
+  }
+}
+
+async function pollAgentLogs(instanceId) {
+  try {
+    const resp = await fetch(`${FUNC_URL}/api/agent-log?instance_id=${instanceId}&since=${window._agentLogSince}&code=${FUNC_KEY}`);
+    const data = await resp.json();
+    if (data.logs?.length) {
+      for (const l of data.logs) {
+        addTestLog(l.level || 'info', l.message);
+        window._agentLogSince = Math.max(window._agentLogSince, l.idx || 0);
+      }
+      const dot = document.getElementById('testLogDot');
+      if (dot) dot.style.display = 'inline-block';
+    }
+  } catch(e) { /* ignore polling errors */ }
+}
+
+async function downloadTests() {
+  if (!testInstanceId) return;
+  addTestLog('run', 'Downloading test package...');
+  try {
+    const resp = await fetch(`${FUNC_URL}/api/download-tests?instance_id=${testInstanceId}&code=${FUNC_KEY}`);
+    if (!resp.ok) {
+      const err = await resp.json();
+      addTestLog('err', err.error || 'Download failed');
+      return;
+    }
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tests_${testInstanceId.substring(0,8)}.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+    addTestLog('ok', 'Test package downloaded. Unzip and run <span style="color:#58a6ff;">run_tests.bat</span>');
+  } catch(e) {
+    addTestLog('err', `Download error: ${e.message}`);
+  }
+}
+
+async function uploadResults(file) {
+  if (!file || !testInstanceId) return;
+  const uploadEl = document.getElementById('uploadStatus');
+  if (uploadEl) uploadEl.textContent = 'Uploading...';
+  addTestLog('run', `Uploading ${file.name}...`);
+  try {
+    const text = await file.text();
+    const resp = await fetch(`${FUNC_URL}/api/upload-results?instance_id=${testInstanceId}&code=${FUNC_KEY}`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/xml'},
+      body: text,
+    });
+    const data = await resp.json();
+    if (data.error) {
+      addTestLog('err', data.error);
+      const us1 = document.getElementById('uploadStatus');
+      if (us1) us1.textContent = 'Error: ' + data.error;
+      return;
+    }
+    addTestLog('ok', `Results uploaded: ${data.passed} passed, ${data.failed} failed, ${data.errors} errors`);
+    const us2 = document.getElementById('uploadStatus');
+    if (us2) us2.textContent = 'Uploaded! Reporting to ADO + Teams...';
+    const dl = document.getElementById('btnDownloadTests');
+    if (dl) dl.style.display = 'none';
+    const ul = document.getElementById('btnUploadResults');
+    if (ul) ul.style.display = 'none';
+  } catch(e) {
+    addTestLog('err', `Upload error: ${e.message}`);
+    const us3 = document.getElementById('uploadStatus');
+    if (us3) us3.textContent = 'Error';
+  }
+}
+
+function addTestLog(type, msg) {
+  const body = document.getElementById('testLogBody');
+  if (!body) return;
+  const ts = new Date().toLocaleTimeString('en-US',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const colors = {info:'#8b949e',run:'#d29922',ok:'#238636',err:'#da3633',warn:'#d29922'};
+  body.innerHTML += `<div><span style="color:#484f58;">${ts}</span> <span style="color:${colors[type]||'#8b949e'};font-weight:600;font-size:10px;">${type.toUpperCase()}</span> ${msg}</div>`;
+  body.scrollTop = body.scrollHeight;
+}
+
+async function startTestRun() {
+  const storyId = document.getElementById('testStoryId').value.trim();
+  const type = _selectedTestType;
+  if (!storyId || !type) return;
+  const appUrl = type === 'ui' ? (document.getElementById('testAppUrl')?.value?.trim() || '') : '';
+
+  document.getElementById('btnRunTest').disabled = true;
+  document.getElementById('testProgressCard').style.display = 'block';
+  document.getElementById('testReviewCard').style.display = 'none';
+  document.getElementById('testLiveCard').style.display = 'none';
+  document.getElementById('testResultsCard').style.display = 'none';
+  document.getElementById('testLogBody').innerHTML = '';
+  document.getElementById('testLogDot').style.display = 'inline-block';
+
+  window._lastTestSteps = {};
+  window._testReviewShown = false;
+  window._testReviewApproved = false;
+  window._agentJobQueued = false;
+  testStartTime = Date.now();
+
+  addTestLog('info', `Starting <span style="color:${type==='ui'?'#58a6ff':'#238636'};font-weight:600;">${type==='ui'?'UI':'Data'} Testing</span> for story <span style="color:#79c0ff;">#${storyId}</span>`);
+  addTestLog('run', 'Fetching story from Azure DevOps...');
+
+  try {
+    const reqBody = { work_item_id: storyId, test_type: type };
+    if (appUrl) reqBody.app_url = appUrl;
+    if (type === 'data' && _customCategories.length) {
+      reqBody.custom_categories = _customCategories;
+    }
+
+    const resp = await fetch(`${FUNC_URL}/api/run-tests?code=${FUNC_KEY}`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(reqBody),
+    });
+    const data = await resp.json();
+    if (data.error) {
+      addTestLog('err', data.error);
+      document.getElementById('btnRunTest').disabled = false;
+      return;
+    }
+
+    testInstanceId = data.instance_id;
+    addTestLog('ok', `Story: <span style="color:#f0f6fc;font-weight:600;">${data.title || data.story_id}</span>`);
+    addTestLog('info', `Instance: ${data.instance_id.substring(0,12)}...`);
+
+    renderTestProgress([
+      {step:1,name:'Read Story',status:'completed',detail:data.title||''},
+      {step:2,name:'Generate Test Plan',status:'in_progress',detail:''},
+      {step:3,name:'Human Review',status:'pending',detail:''},
+      {step:4,name:type==='ui'?'Agent Executes in Browser':'Execute Tests',status:'pending',detail:''},
+      {step:5,name:'Report Results',status:'pending',detail:''},
+    ]);
+
+    // Start polling both orchestrator status and agent live logs
+    startAgentLogPolling(testInstanceId);
+    testPollTimer = setInterval(() => pollTestProgress(), 3000);
+  } catch(e) {
+    addTestLog('err', e.message);
+    document.getElementById('btnRunTest').disabled = false;
+  }
+}
+
+async function pollTestProgress() {
+  if (!testInstanceId) return;
+  try {
+    const elapsed = Math.round((Date.now() - testStartTime) / 1000);
+    const resp = await fetch(`${FUNC_URL}/api/test-progress?instance_id=${testInstanceId}&code=${FUNC_KEY}`);
+    const data = await resp.json();
+
+    if (data.steps?.length) {
+      renderTestProgress(data.steps);
+      // Log step changes
+      for (const s of data.steps) {
+        const key = `ts${s.step}`;
+        if (s.status !== (window._lastTestSteps||{})[key]) {
+          window._lastTestSteps = window._lastTestSteps || {};
+          window._lastTestSteps[key] = s.status;
+          if (s.status === 'in_progress') addTestLog('run', `${s.name}: started`);
+          else if (s.status === 'completed') addTestLog('ok', `${s.name}: <span style="color:#238636;">done</span>${s.detail?' — '+s.detail:''}`);
+          else if (s.status === 'failed') addTestLog('err', `${s.name}: <span style="color:#da3633;">FAILED</span>${s.detail?' — '+s.detail:''}`);
+        }
+      }
+    }
+
+    // Human Review Gate: show test cases from ADO when awaiting review
+    if (data.awaiting_test_review && data.test_cases && !window._testReviewShown) {
+      window._testReviewShown = true;
+      _testCases = data.test_cases;
+      addTestLog('warn', '&#x23F8; Awaiting human review of test plan...');
+      showTestReviewGate();
+    }
+
+    // Live test case updates (after approval)
+    if (data.test_cases && !data.awaiting_test_review && window._testReviewApproved) {
+      _testCases = data.test_cases;
+      renderLiveTestCases();
+    }
+
+    // For UI tests: automatically queue job for local agent to pick up
+    if (data.ready_for_download && (data.test_type === 'ui' || data.test_type === 'both') && !window._agentJobQueued) {
+      window._agentJobQueued = true;
+      addTestLog('run', 'UI test plan ready. Queuing job for local agent...');
+      fetch(`${FUNC_URL}/api/queue-agent-job?code=${FUNC_KEY}`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({instance_id: testInstanceId, story_id: data.story_id}),
+      }).then(() => {
+        addTestLog('ok', 'Job queued. Local agent will pick it up and open Edge browser.');
+      });
+    }
+
+    if (data.is_complete) {
+      clearInterval(testPollTimer);
+      testPollTimer = null;
+      stopAgentLogPolling();
+      document.getElementById('btnRunTest').disabled = false;
+      document.getElementById('testLogDot').style.display = 'none';
+      const r = data.results || {};
+      addTestLog('info', '='.repeat(40));
+      addTestLog(r.failed ? 'err' : 'ok', `Tests complete in ${elapsed}s: ${r.passed||0} passed, ${r.failed||0} failed`);
+      if (r.bug_ids?.length) addTestLog('warn', `Bugs created: ${r.bug_ids.map(b=>'#'+b).join(', ')}`);
+      addTestLog('info', '='.repeat(40));
+      renderTestResults(r);
+    }
+  } catch(e) {
+    addTestLog('err', `Poll error: ${e.message}`);
+  }
+}
+
+// ── Human Review Gate ──
+
+function showTestReviewGate() {
+  const card = document.getElementById('testReviewCard');
+  const body = document.getElementById('testReviewBody');
+  card.style.display = 'block';
+  document.getElementById('reviewTestPlanId').textContent = document.getElementById('testStoryId')?.value || '';
+
+  let h = '<table style="width:100%;border-collapse:collapse;font-size:11px;">';
+  h += '<thead><tr style="border-bottom:2px solid #30363d;"><th style="text-align:left;padding:8px 12px;color:#484f58;font-size:10px;">ID</th><th style="text-align:left;padding:8px 12px;color:#484f58;font-size:10px;">TEST CASE</th><th style="padding:8px 12px;color:#484f58;font-size:10px;">CATEGORY</th><th style="padding:8px 12px;color:#484f58;font-size:10px;">PRIORITY</th><th style="padding:8px 12px;color:#484f58;font-size:10px;">STATUS</th></tr></thead><tbody>';
+  _testCases.forEach(tc => {
+    const isCustom = tc.category === 'Custom';
+    const catPill = isCustom ? '<span class="pill warn">custom</span>' : `<span class="pill info">${tc.category||''}</span>`;
+    h += `<tr style="border-bottom:1px solid #21262d;">
+      <td style="padding:6px 12px;font-family:Consolas,monospace;color:#58a6ff;font-size:10px;">${tc.id||''}</td>
+      <td style="padding:6px 12px;color:#f0f6fc;">${tc.name||''}</td>
+      <td style="padding:6px 12px;text-align:center;">${catPill}</td>
+      <td style="padding:6px 12px;text-align:center;"><span style="color:${tc.priority==='P1'?'#da3633':'#d29922'};font-weight:600;">${tc.priority||''}</span></td>
+      <td style="padding:6px 12px;text-align:center;"><span style="color:#484f58;">&#x23F3; Pending</span></td>
+    </tr>`;
+  });
+  h += '</tbody></table>';
+  body.innerHTML = h;
+
+  setTimeout(() => card.scrollIntoView({behavior:'smooth', block:'start'}), 200);
+}
+
+async function approveTestPlan() {
+  document.getElementById('testReviewCard').style.display = 'none';
+  addTestLog('ok', '<span style="color:#3fb950;">APPROVED</span> — executing test cases...');
+  window._testReviewApproved = true;
+
+  // Show live execution card
+  document.getElementById('testLiveCard').style.display = 'block';
+  renderLiveTestCases();
+
+  try {
+    await fetch(`${FUNC_URL}/api/approve-test-plan?code=${FUNC_KEY}`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({instance_id: testInstanceId}),
+    });
+  } catch(e) {
+    addTestLog('err', `Approve error: ${e.message}`);
+  }
+}
+
+async function declineTestPlan() {
+  const reason = prompt('Reason for declining (optional):') || '';
+  document.getElementById('testReviewCard').style.display = 'none';
+  addTestLog('err', '<span style="color:#da3633;">DECLINED</span> — test plan rejected');
+  document.getElementById('testLogDot').style.display = 'none';
+  document.getElementById('btnRunTest').disabled = false;
+
+  try {
+    await fetch(`${FUNC_URL}/api/decline-test-plan?code=${FUNC_KEY}`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({instance_id: testInstanceId, reason}),
+    });
+  } catch(e) {
+    addTestLog('err', `Decline error: ${e.message}`);
+  }
+
+  if (testPollTimer) { clearInterval(testPollTimer); testPollTimer = null; }
+  stopAgentLogPolling();
+}
+
+// ── Live Test Case Execution ──
+
+function renderLiveTestCases() {
+  const body = document.getElementById('testLiveBody');
+  if (!body) return;
+  const passed = _testCases.filter(t=>t.status==='passed').length;
+  const failed = _testCases.filter(t=>t.status==='failed').length;
+  const warn = _testCases.filter(t=>t.status==='warning').length;
+  const counter = document.getElementById('liveCounter');
+  if (counter) counter.innerHTML = `<span style="color:#3fb950;">${passed} passed</span> &middot; <span style="color:#da3633;">${failed} failed</span> &middot; <span style="color:#d29922;">${warn} warn</span> &middot; ${_testCases.length} total`;
+
+  let h = '';
+  _testCases.forEach(tc => {
+    let icon='&#x2B1C;', color='#484f58', statusLabel='Pending', dur='';
+    if (tc.status==='running') { icon='<div class="spinner-dots" style="display:inline-flex;"><span></span><span></span><span></span></div>'; color='#d29922'; statusLabel='Running'; }
+    else if (tc.status==='passed') { icon='&#x2705;'; color='#238636'; statusLabel='Passed'; dur=tc.duration||''; }
+    else if (tc.status==='failed') { icon='&#x274C;'; color='#da3633'; statusLabel='Failed'; dur=tc.duration||''; }
+    else if (tc.status==='warning') { icon='&#x26A0;'; color='#d29922'; statusLabel='Warning'; dur=tc.duration||''; }
+    const isCustom = tc.category === 'Custom';
+    h += `<div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid #21262d;transition:background 0.3s;${tc.status==='running'?'background:#d2992208;':''}">
+      <span style="width:18px;text-align:center;flex-shrink:0;">${icon}</span>
+      <span style="font-family:Consolas,monospace;font-size:9px;color:#58a6ff;flex-shrink:0;width:55px;">${tc.id||''}</span>
+      <span style="flex:1;font-size:11px;color:${tc.status==='pending'?'#484f58':'#c9d1d9'};">${tc.name||''}</span>
+      ${isCustom?'<span class="pill warn" style="font-size:8px;">custom</span>':''}
+      <span style="font-size:10px;color:${color};font-weight:600;min-width:55px;text-align:right;">${statusLabel}</span>
+      ${dur?`<span style="font-size:9px;color:#484f58;min-width:35px;text-align:right;">${dur}</span>`:'<span style="min-width:35px;"></span>'}
+    </div>`;
+  });
+  body.innerHTML = h;
+}
+
+function renderTestProgress(steps) {
+  const icons = {completed:'&#x2705;', in_progress:'&#x23F3;', pending:'&#x2B1C;', failed:'&#x274C;'};
+  let h = '';
+  for (const s of steps) {
+    const icon = icons[s.status] || '&#x2B1C;';
+    const color = s.status==='completed'?'#238636':s.status==='in_progress'?'#d29922':s.status==='failed'?'#da3633':'#484f58';
+    const detail = s.detail ? ` &mdash; <span style="color:#8b949e;">${s.detail}</span>` : '';
+    h += `<div style="padding:6px 0;display:flex;align-items:center;gap:8px;border-bottom:1px solid #21262d;">
+      <span>${icon}</span>
+      <span style="color:${color};font-weight:600;font-size:12px;">${s.name}</span>
+      <span style="font-size:11px;">${detail}</span>
+    </div>`;
+  }
+  document.getElementById('testProgressBody').innerHTML = h;
+}
+
+function renderTestResults(results) {
+  if (!results) return;
+  document.getElementById('testResultsCard').style.display = 'block';
+  const p = results.passed||0, f = results.failed||0, e = results.errors||0, w = results.warnings||0, t = results.total||0;
+  const isGreen = f === 0 && e === 0;
+
+  let h = `<div style="display:flex;gap:16px;margin-bottom:16px;">
+    <div style="text-align:center;flex:1;padding:12px;background:${isGreen?'#23863615':'#da363315'};border-radius:8px;">
+      <div style="font-size:28px;font-weight:800;color:${isGreen?'#238636':'#da3633'};">${isGreen?'PASS':'FAIL'}</div>
+      <div style="font-size:11px;color:#8b949e;">${p}/${t} passed</div>
+    </div>
+    <div style="text-align:center;flex:1;padding:12px;background:#161b22;border-radius:8px;">
+      <div style="font-size:28px;font-weight:800;color:#238636;">${p}</div><div style="font-size:11px;color:#8b949e;">Passed</div>
+    </div>
+    <div style="text-align:center;flex:1;padding:12px;background:#161b22;border-radius:8px;">
+      <div style="font-size:28px;font-weight:800;color:#d29922;">${w}</div><div style="font-size:11px;color:#8b949e;">Warning</div>
+    </div>
+    <div style="text-align:center;flex:1;padding:12px;background:#161b22;border-radius:8px;">
+      <div style="font-size:28px;font-weight:800;color:#da3633;">${f}</div><div style="font-size:11px;color:#8b949e;">Failed</div>
+    </div>
+  </div>`;
+
+  if (results.test_results?.length) {
+    h += '<table style="width:100%;border-collapse:collapse;font-size:11px;">';
+    h += '<thead><tr style="border-bottom:2px solid #30363d;"><th style="text-align:left;padding:6px;color:#8b949e;">Test</th><th style="padding:6px;color:#8b949e;">Status</th><th style="padding:6px;color:#8b949e;">Duration</th><th style="text-align:left;padding:6px;color:#8b949e;">Message</th></tr></thead><tbody>';
+    for (const tr of results.test_results) {
+      const icon = tr.status==='passed'?'&#x2705;':tr.status==='failed'?'&#x274C;':'&#x26A0;';
+      const color = tr.status==='passed'?'#238636':tr.status==='failed'?'#da3633':'#d29922';
+      h += `<tr style="border-bottom:1px solid #21262d;">
+        <td style="padding:6px;font-family:Consolas,monospace;">${tr.name||''}</td>
+        <td style="padding:6px;text-align:center;">${icon} <span style="color:${color};">${tr.status}</span></td>
+        <td style="padding:6px;text-align:center;color:#8b949e;">${typeof tr.duration === 'number' ? tr.duration.toFixed(1)+'s' : (tr.duration||'')}</td>
+        <td style="padding:6px;color:#8b949e;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${tr.message||''}</td>
+      </tr>`;
+    }
+    h += '</tbody></table>';
+  }
+
+  if (results.bug_ids?.length) {
+    h += `<div style="margin-top:12px;padding:8px;background:#da363315;border:1px solid #da363344;border-radius:6px;font-size:11px;">
+      <span style="color:#da3633;font-weight:600;">Bugs Auto-Created:</span> ${results.bug_ids.map(b=>`<a href="${window._ADO_BASE_URL||'#'}/_workitems/edit/${b}" target="_blank" style="color:#58a6ff;">#${b}</a>`).join(', ')}
+    </div>`;
+  }
+
+  // Download Excel report button
+  if (testInstanceId) {
+    h += `<div style="margin-top:12px;text-align:center;">
+      <button class="btn btn-green" onclick="window.open('${FUNC_URL}/api/download-data-report?instance_id=${testInstanceId}&code=${FUNC_KEY}','_blank')" style="padding:6px 16px;font-size:12px;">&#x1F4CA; Download Excel Report</button>
+    </div>`;
+  }
+
+  document.getElementById('testResultsBody').innerHTML = h;
+}
+</script>
+</body>
+</html>

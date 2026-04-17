@@ -1,0 +1,199 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "BI Automation Pipeline",
+    "description": "Multi-agent AI pipeline that reads ADO User Stories and builds Azure Synapse medallion architecture",
+    "version": "1.0.0"
+  },
+  "host": "{functionAppName}.azurewebsites.net",
+  "basePath": "/",
+  "schemes": ["https"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
+  "securityDefinitions": {
+    "api_key": {
+      "type": "apiKey",
+      "in": "query",
+      "name": "code"
+    }
+  },
+  "security": [{"api_key": []}],
+  "paths": {
+    "/api/process-ado-story": {
+      "post": {
+        "operationId": "ProcessADOStory",
+        "summary": "Process a BI story from an ADO Work Item",
+        "description": "Fetches a User Story from Azure DevOps by work item ID, extracts source tables and business rules, then runs the full BI automation pipeline to create medallion architecture in Synapse.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": ["work_item_id"],
+              "properties": {
+                "work_item_id": {
+                  "type": "string",
+                  "description": "The ADO Work Item ID to process"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pipeline started successfully",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "instance_id": {
+                  "type": "string",
+                  "description": "Orchestration instance ID"
+                },
+                "story_id": {
+                  "type": "string",
+                  "description": "Mapped story ID"
+                },
+                "work_item_id": {
+                  "type": "string",
+                  "description": "The ADO Work Item ID"
+                },
+                "title": {
+                  "type": "string",
+                  "description": "Work item title"
+                },
+                "source_tables": {
+                  "type": "array",
+                  "items": {"type": "string"},
+                  "description": "Extracted source tables"
+                },
+                "status_url": {
+                  "type": "string",
+                  "description": "URL to check pipeline status"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/story-status": {
+      "get": {
+        "operationId": "StoryStatus",
+        "summary": "Check BI pipeline status by Work Item ID",
+        "description": "Looks up the latest pipeline run for a given ADO Work Item ID and returns deployment results and validation status.",
+        "parameters": [
+          {
+            "name": "work_item_id",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "description": "The ADO Work Item ID to check status for"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Story pipeline status",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "work_item_id": {
+                  "type": "string",
+                  "description": "Work Item ID"
+                },
+                "story_id": {
+                  "type": "string",
+                  "description": "Story ID"
+                },
+                "instance_id": {
+                  "type": "string",
+                  "description": "Orchestration instance ID"
+                },
+                "runtime_status": {
+                  "type": "string",
+                  "description": "Running, Completed, Failed"
+                },
+                "pipeline_status": {
+                  "type": "string",
+                  "description": "SUCCESS, PARTIAL SUCCESS, FAILED, or IN PROGRESS"
+                },
+                "mode": {
+                  "type": "string",
+                  "description": "greenfield, brownfield, or hybrid"
+                },
+                "objects_deployed": {
+                  "type": "array",
+                  "items": {"type": "string"},
+                  "description": "List of deployed objects"
+                },
+                "deployed_count": {
+                  "type": "integer",
+                  "description": "Number of objects deployed"
+                },
+                "failed_count": {
+                  "type": "integer",
+                  "description": "Number of objects failed"
+                },
+                "validations_passed": {
+                  "type": "array",
+                  "items": {"type": "string"},
+                  "description": "List of passed validations"
+                },
+                "created": {
+                  "type": "string",
+                  "description": "Pipeline start time"
+                },
+                "completed": {
+                  "type": "string",
+                  "description": "Pipeline completion time"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bot-message": {
+      "post": {
+        "operationId": "BotMessage",
+        "summary": "Natural language bot commands",
+        "description": "Send natural language commands like process 515677, status, list, help",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "description": "The user message or command"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bot response",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "description": "Response type"
+                },
+                "text": {
+                  "type": "string",
+                  "description": "Bot response message"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

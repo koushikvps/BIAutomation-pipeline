@@ -1,0 +1,385 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "BI Automation Pipeline",
+    "description": "Multi-agent AI pipeline that reads ADO User Stories and builds Azure Synapse medallion architecture (Bronze → Silver → Gold)",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://{functionAppName}.azurewebsites.net",
+      "description": "Function App base URL. Replace {functionAppName} with your deployment name."
+    }
+  ],
+  "paths": {
+    "/api/preview-ado-story": {
+      "post": {
+        "operationId": "previewADOStory",
+        "summary": "Preview a BI story from an ADO Work Item without executing",
+        "description": "Fetches a User Story from Azure DevOps, extracts source tables and business rules, and returns a preview of what would be built. Does NOT trigger the pipeline. Use this for confirmation before calling processADOStory.",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Function App authentication key"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["work_item_id"],
+                "properties": {
+                  "work_item_id": {
+                    "type": "integer",
+                    "description": "The ADO Work Item ID to preview"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Story preview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "work_item_id": { "type": "integer" },
+                    "title": { "type": "string" },
+                    "state": { "type": "string" },
+                    "assigned_to": { "type": "string" },
+                    "story_id": { "type": "string" },
+                    "source_system": { "type": "string" },
+                    "source_tables": { "type": "array", "items": { "type": "string" } },
+                    "dimensions": { "type": "array", "items": { "type": "string" } },
+                    "metrics": { "type": "array", "items": { "type": "string" } },
+                    "filters": { "type": "array", "items": { "type": "string" } },
+                    "target_view_name": { "type": "string" },
+                    "ready": { "type": "boolean", "description": "Whether the story has enough info to process" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/process-ado-story": {
+      "post": {
+        "operationId": "processADOStory",
+        "summary": "Process a BI story from an ADO Work Item",
+        "description": "Fetches a User Story from Azure DevOps by work item ID, extracts source tables and business rules, then runs the full BI automation pipeline (Planner → Developer → Validator → Deploy) to create medallion architecture in Synapse.",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Function App authentication key"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["work_item_id"],
+                "properties": {
+                  "work_item_id": {
+                    "type": "integer",
+                    "description": "The ADO Work Item ID to process"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pipeline started successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "instance_id": {
+                      "type": "string",
+                      "description": "Orchestration instance ID for status tracking"
+                    },
+                    "story_id": {
+                      "type": "string",
+                      "description": "Mapped story ID (e.g. STORY-515677)"
+                    },
+                    "work_item_id": {
+                      "type": "integer",
+                      "description": "The ADO Work Item ID"
+                    },
+                    "title": {
+                      "type": "string",
+                      "description": "Work item title"
+                    },
+                    "source_tables": {
+                      "type": "array",
+                      "items": { "type": "string" },
+                      "description": "Extracted source tables"
+                    },
+                    "status_url": {
+                      "type": "string",
+                      "description": "URL to check pipeline status"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Could not extract source tables from work item"
+          },
+          "500": {
+            "description": "Internal error"
+          }
+        }
+      }
+    },
+    "/api/process-story": {
+      "post": {
+        "operationId": "processStoryJSON",
+        "summary": "Process a BI story from JSON input",
+        "description": "Accepts a structured story JSON and runs the full BI automation pipeline.",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["story_id", "title", "source_tables"],
+                "properties": {
+                  "story_id": { "type": "string" },
+                  "title": { "type": "string" },
+                  "business_objective": { "type": "string" },
+                  "source_system": { "type": "string" },
+                  "source_tables": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  },
+                  "dimensions": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  },
+                  "metrics": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  },
+                  "filters": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  },
+                  "joins": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  },
+                  "target_schema": { "type": "string" },
+                  "target_view_name": { "type": "string" },
+                  "priority": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Pipeline started"
+          }
+        }
+      }
+    },
+    "/api/bot-message": {
+      "post": {
+        "operationId": "botMessage",
+        "summary": "Natural language bot commands",
+        "description": "Send natural language commands like 'process 515677', 'status <id>', 'list', 'help'",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "description": "The user's message/command"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Bot response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": { "type": "string" },
+                    "text": {
+                      "type": "string",
+                      "description": "Bot response message (markdown)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pipeline-status": {
+      "get": {
+        "operationId": "pipelineStatus",
+        "summary": "Get detailed pipeline run status",
+        "description": "Returns a detailed summary of a pipeline run including deployed objects, validation results, execution plan, and errors.",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Function App authentication key"
+          },
+          {
+            "name": "instance_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "The orchestration instance ID from the processADOStory response"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pipeline status details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "instance_id": { "type": "string" },
+                    "runtime_status": { "type": "string", "description": "Running, Completed, Failed" },
+                    "pipeline_status": { "type": "string", "description": "planning, developing, deploying, completed, escalated, failed" },
+                    "story_id": { "type": "string" },
+                    "mode": { "type": "string", "description": "greenfield, brownfield, or hybrid" },
+                    "artifacts_generated": { "type": "integer" },
+                    "deployment": {
+                      "type": "object",
+                      "properties": {
+                        "total": { "type": "integer" },
+                        "deployed": { "type": "array", "items": { "type": "string" } },
+                        "failed": { "type": "array", "items": { "type": "object" } }
+                      }
+                    },
+                    "validation": {
+                      "type": "object",
+                      "properties": {
+                        "total_checks": { "type": "integer" },
+                        "passed": { "type": "array", "items": { "type": "string" } },
+                        "failed": { "type": "array", "items": { "type": "object" } }
+                      }
+                    },
+                    "healer_actions": { "type": "integer" },
+                    "retry_count": { "type": "integer" },
+                    "errors": { "type": "array", "items": { "type": "string" } },
+                    "created": { "type": "string" },
+                    "completed": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/story-status": {
+      "get": {
+        "operationId": "storyStatus",
+        "summary": "Check BI pipeline status by Work Item ID",
+        "description": "Looks up the latest pipeline run for a given ADO Work Item ID and returns deployment results, validation status, and objects created. No instance ID needed - just use the same Work Item ID.",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Function App authentication key"
+          },
+          {
+            "name": "work_item_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "integer" },
+            "description": "The ADO Work Item ID to check status for"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Story pipeline status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "work_item_id": { "type": "integer" },
+                    "story_id": { "type": "string" },
+                    "instance_id": { "type": "string" },
+                    "runtime_status": { "type": "string" },
+                    "pipeline_status": { "type": "string", "description": "SUCCESS, PARTIAL SUCCESS, FAILED, or IN PROGRESS" },
+                    "mode": { "type": "string" },
+                    "objects_deployed": { "type": "array", "items": { "type": "string" } },
+                    "objects_failed": { "type": "array", "items": { "type": "object" } },
+                    "deployed_count": { "type": "integer" },
+                    "failed_count": { "type": "integer" },
+                    "validations_passed": { "type": "array", "items": { "type": "string" } },
+                    "validations_failed": { "type": "array", "items": { "type": "object" } },
+                    "created": { "type": "string" },
+                    "completed": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

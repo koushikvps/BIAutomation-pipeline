@@ -1,0 +1,28 @@
+{
+  "version": "2.0",
+  "logging": {
+    "applicationInsights": {
+      "samplingSettings": {
+        "isEnabled": true,
+        "excludedTypes": "Request"
+      }
+    },
+    "logLevel": {
+      "default": "Information",
+      "Host.Triggers.DurableTask": "Information"
+    }
+  },
+  "extensions": {
+    "durableTask": {
+      "hubName": "BiAutoHubV8",
+      "storageProvider": {
+        "type": "AzureStorage"
+      }
+    }
+  },
+  "functionTimeout": "00:30:00",
+  "extensionBundle": {
+    "id": "Microsoft.Azure.Functions.ExtensionBundle",
+    "version": "[4.*, 5.0.0)"
+  }
+}

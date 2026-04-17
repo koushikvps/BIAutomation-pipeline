@@ -1,0 +1,41 @@
+{
+  "story_id": "STORY-001",
+  "title": "Daily Sales Summary by Region and Product Category",
+  "business_objective": "As a sales analyst, I need a daily view of total revenue and order counts broken down by customer region and product category, filtered to the last 12 months, to identify sales trends and regional performance.",
+  "source_system": "SalesDB",
+  "source_tables": [
+    "sales.OrderHeader",
+    "sales.OrderDetail",
+    "sales.Customer",
+    "sales.Product"
+  ],
+  "dimensions": [
+    "OrderDate",
+    "Region",
+    "Category"
+  ],
+  "metrics": [
+    "SUM(od.LineTotal) AS TotalRevenue",
+    "COUNT(DISTINCT oh.OrderId) AS OrderCount",
+    "SUM(od.Quantity) AS TotalUnitsSold"
+  ],
+  "filters": [
+    "oh.OrderDate >= DATEADD(MONTH, -12, CAST(GETDATE() AS DATE))",
+    "oh.Status <> 'Cancelled'"
+  ],
+  "grain": "Daily, per Region, per Product Category",
+  "joins": [
+    "OrderHeader.OrderId = OrderDetail.OrderId",
+    "OrderDetail.ProductId = Product.ProductId",
+    "OrderHeader.CustomerId = Customer.CustomerId"
+  ],
+  "acceptance_criteria": [
+    "Row count in gold view must be > 0",
+    "No NULL values in Region or Category columns",
+    "TotalRevenue must reconcile with SUM(LineTotal) from silver layer",
+    "OrderCount must match COUNT(DISTINCT OrderId) from silver layer"
+  ],
+  "target_schema": "gold",
+  "target_view_name": "vw_sales_daily_summary",
+  "priority": "high"
+}

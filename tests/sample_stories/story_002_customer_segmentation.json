@@ -1,0 +1,35 @@
+{
+  "story_id": "STORY-002",
+  "title": "Customer Segmentation Revenue View",
+  "business_objective": "As a marketing manager, I need to see total revenue and order frequency per customer segment (Enterprise, SMB, Consumer) by country, to allocate marketing spend appropriately.",
+  "source_system": "SalesDB",
+  "source_tables": [
+    "sales.OrderHeader",
+    "sales.Customer"
+  ],
+  "dimensions": [
+    "Segment",
+    "Country"
+  ],
+  "metrics": [
+    "SUM(oh.TotalAmount) AS TotalRevenue",
+    "COUNT(oh.OrderId) AS TotalOrders",
+    "COUNT(DISTINCT oh.CustomerId) AS UniqueCustomers",
+    "AVG(oh.TotalAmount) AS AvgOrderValue"
+  ],
+  "filters": [
+    "oh.Status IN ('Shipped', 'Delivered')"
+  ],
+  "grain": "Per Segment, per Country",
+  "joins": [
+    "OrderHeader.CustomerId = Customer.CustomerId"
+  ],
+  "acceptance_criteria": [
+    "All three segments must be present in output",
+    "No NULL segments",
+    "TotalRevenue per segment must reconcile with source"
+  ],
+  "target_schema": "gold",
+  "target_view_name": "vw_sales_customer_segmentation",
+  "priority": "medium"
+}

@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BI Automation Platform — Executive Demo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', 'EYInterstate', 'Segoe UI', sans-serif; background: #1a1a24; color: #e0e0e0; }
+
+  /* ── EY Brand Colors ── */
+  :root {
+    --ey-yellow: #FFE600;
+    --ey-yellow-dark: #FFD600;
+    --ey-black: #2E2E38;
+    --ey-dark: #1a1a24;
+    --ey-gray-dark: #23232F;
+    --ey-gray-mid: #333340;
+    --ey-gray-light: #747480;
+    --ey-white: #FFFFFF;
+    --ey-off-white: #F0F0F0;
+    --ey-green: #00A76D;
+    --ey-red: #E0362C;
+    --ey-orange: #FF9831;
+    --ey-blue: #188CE5;
+    --ey-teal: #00A3AE;
+    --ey-purple: #7D3F98;
+  }
+
+  /* ── Slide System ── */
+  .slide { display: none; min-height: 100vh; padding: 60px 80px 100px; position: relative; }
+  .slide.active { display: flex; flex-direction: column; justify-content: center; }
+  .slide::before { content: ''; position: absolute; top: 0; left: 0; width: 6px; height: 100%; background: var(--ey-yellow); }
+  .slide::after {
+    content: attr(data-num) ' / 22';
+    position: absolute; bottom: 30px; right: 40px;
+    font-size: 12px; color: var(--ey-gray-light); font-weight: 500;
+  }
+
+  /* EY logo bar */
+  .slide .ey-bar {
+    position: absolute; top: 20px; right: 40px;
+    font-size: 28px; font-weight: 900; color: var(--ey-yellow);
+    letter-spacing: -1px;
+  }
+  .slide .ey-bar span { color: var(--ey-gray-light); font-size: 12px; font-weight: 400; letter-spacing: 1px; display: block; text-align: right; }
+
+  /* ── Navigation ── */
+  .nav-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--ey-black); border-top: 2px solid var(--ey-yellow);
+    padding: 12px 40px; display: flex; align-items: center; justify-content: space-between; z-index: 100;
+  }
+  .nav-bar button {
+    background: var(--ey-gray-dark); border: 1px solid var(--ey-gray-mid);
+    color: var(--ey-off-white); padding: 8px 20px; border-radius: 4px;
+    cursor: pointer; font-size: 13px; font-weight: 600; font-family: inherit; transition: all 0.2s;
+  }
+  .nav-bar button:hover { background: var(--ey-yellow); color: var(--ey-black); }
+  .nav-bar .dots { display: flex; gap: 5px; }
+  .nav-bar .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--ey-gray-mid); cursor: pointer; transition: all 0.2s; }
+  .nav-bar .dot.active { background: var(--ey-yellow); transform: scale(1.3); }
+  .nav-bar .dot.visited { background: var(--ey-gray-light); }
+  .nav-bar .progress { font-size: 12px; color: var(--ey-gray-light); font-weight: 500; }
+
+  /* ── Typography ── */
+  h1 { font-size: 52px; font-weight: 900; color: var(--ey-white); line-height: 1.08; margin-bottom: 16px; letter-spacing: -1px; }
+  h2 { font-size: 38px; font-weight: 800; color: var(--ey-white); margin-bottom: 20px; letter-spacing: -0.5px; }
+  h3 { font-size: 22px; font-weight: 700; color: var(--ey-yellow); margin-bottom: 14px; }
+  p { font-size: 17px; line-height: 1.65; color: #a0a0b0; margin-bottom: 10px; }
+  .subtitle { font-size: 20px; color: #a0a0b0; margin-bottom: 28px; line-height: 1.5; }
+  .ey-highlight { color: var(--ey-yellow); }
+  .green { color: var(--ey-green); }
+  .red { color: var(--ey-red); }
+  .orange { color: var(--ey-orange); }
+  .blue { color: var(--ey-blue); }
+  .big-number { font-size: 72px; font-weight: 900; color: var(--ey-yellow); letter-spacing: -2px; }
+  .section-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 3px;
+    color: var(--ey-yellow); margin-bottom: 12px; font-weight: 700;
+  }
+
+  /* ── Cards ── */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; margin-top: 20px; }
+  .card {
+    background: var(--ey-gray-dark); border: 1px solid var(--ey-gray-mid);
+    border-radius: 8px; padding: 24px; border-top: 3px solid var(--ey-yellow);
+    transition: transform 0.2s;
+  }
+  .card:hover { transform: translateY(-2px); }
+  .card h4 { font-size: 16px; color: var(--ey-white); margin-bottom: 8px; font-weight: 700; }
+  .card p { font-size: 13px; }
+  .card .icon { font-size: 28px; margin-bottom: 10px; }
+  .card-green { border-top-color: var(--ey-green); }
+  .card-red { border-top-color: var(--ey-red); }
+  .card-blue { border-top-color: var(--ey-blue); }
+  .card-teal { border-top-color: var(--ey-teal); }
+  .card-purple { border-top-color: var(--ey-purple); }
+
+  /* ── Flow ── */
+  .flow { display: flex; align-items: center; gap: 0; margin: 24px 0; flex-wrap: wrap; justify-content: center; }
+  .flow-node {
+    background: var(--ey-gray-dark); border: 2px solid var(--ey-gray-mid);
+    border-radius: 8px; padding: 14px 18px; text-align: center; min-width: 130px;
+  }
+  .flow-node.ai { border-color: var(--ey-yellow); background: rgba(255,230,0,0.05); }
+  .flow-node.done { border-color: var(--ey-green); background: rgba(0,167,109,0.05); }
+  .flow-node .emoji { font-size: 22px; display: block; margin-bottom: 4px; }
+  .flow-node .name { font-size: 12px; font-weight: 700; color: var(--ey-white); }
+  .flow-node .desc { font-size: 10px; color: var(--ey-gray-light); margin-top: 3px; }
+  .flow-arrow { font-size: 20px; color: var(--ey-yellow); padding: 0 6px; }
+
+  /* ── Tables ── */
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13px; }
+  th {
+    text-align: left; padding: 10px 14px; background: var(--ey-gray-dark);
+    color: var(--ey-yellow); font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.5px; border-bottom: 2px solid var(--ey-yellow);
+    font-weight: 700;
+  }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--ey-gray-mid); color: #c0c0cc; }
+  tr:hover td { background: rgba(255,230,0,0.03); }
+
+  /* ── Stats ── */
+  .stats { display: flex; gap: 40px; margin: 24px 0; flex-wrap: wrap; }
+  .stat { text-align: center; min-width: 120px; }
+  .stat .value { font-size: 52px; font-weight: 900; }
+  .stat .label { font-size: 12px; color: #a0a0b0; margin-top: 4px; font-weight: 500; }
+
+  /* ── Columns ── */
+  .cols { display: flex; gap: 36px; }
+  .cols > div { flex: 1; }
+
+  /* ── Pills ── */
+  .pill { display: inline-block; padding: 3px 12px; border-radius: 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; }
+  .pill-yellow { background: rgba(255,230,0,0.15); color: var(--ey-yellow); }
+  .pill-green { background: rgba(0,167,109,0.15); color: var(--ey-green); }
+  .pill-blue { background: rgba(24,140,229,0.15); color: var(--ey-blue); }
+  .pill-red { background: rgba(224,54,44,0.15); color: var(--ey-red); }
+  .pill-teal { background: rgba(0,163,174,0.15); color: var(--ey-teal); }
+  .pill-purple { background: rgba(125,63,152,0.15); color: var(--ey-purple); }
+
+  /* ── Quote ── */
+  .quote {
+    border-left: 4px solid var(--ey-yellow); padding: 20px 28px;
+    background: var(--ey-gray-dark); border-radius: 0 8px 8px 0;
+    margin: 20px 0; font-style: italic; font-size: 18px; color: #c0c0cc; line-height: 1.6;
+  }
+
+  /* ── Comparison ── */
+  .vs-row { display: flex; gap: 24px; margin: 12px 0; align-items: stretch; }
+  .vs-box {
+    flex: 1; padding: 20px; border-radius: 8px;
+    background: var(--ey-gray-dark); border: 1px solid var(--ey-gray-mid);
+  }
+  .vs-box.them { border-top: 3px solid var(--ey-red); }
+  .vs-box.us { border-top: 3px solid var(--ey-green); }
+  .vs-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 10px; }
+
+  /* ── Animated accent line ── */
+  @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+  .shimmer-line {
+    height: 3px; margin: 20px 0; border-radius: 2px;
+    background: linear-gradient(90deg, transparent, var(--ey-yellow), transparent);
+    background-size: 200% 100%; animation: shimmer 3s infinite;
+  }
+
+  /* ── List ── */
+  ul.ey-list { list-style: none; padding: 0; }
+  ul.ey-list li { padding: 8px 0; font-size: 15px; color: #c0c0cc; position: relative; padding-left: 20px; }
+  ul.ey-list li::before { content: ''; position: absolute; left: 0; top: 14px; width: 8px; height: 8px; background: var(--ey-yellow); border-radius: 2px; }
+
+  /* ── Checkmark list ── */
+  ul.check-list { list-style: none; padding: 0; }
+  ul.check-list li { padding: 6px 0; font-size: 14px; }
+  ul.check-list li.yes::before { content: '\2705 '; }
+  ul.check-list li.no::before { content: '\274C '; }
+
+  /* ── Title slide special ── */
+  .title-slide { background: linear-gradient(135deg, #1a1a24 0%, #2E2E38 100%); }
+  .title-slide::before { width: 8px; background: var(--ey-yellow); }
+  .title-yellow-bar { width: 100px; height: 6px; background: var(--ey-yellow); margin-bottom: 32px; border-radius: 3px; }
+
+  /* ── Section divider slide ── */
+  .divider-slide { background: var(--ey-yellow); }
+  .divider-slide::before { background: var(--ey-black); }
+  .divider-slide h2 { color: var(--ey-black); }
+  .divider-slide p { color: var(--ey-black); opacity: 0.7; }
+  .divider-slide .section-label { color: var(--ey-black); opacity: 0.5; }
+  .divider-slide .ey-bar { color: var(--ey-black); }
+  .divider-slide .ey-bar span { color: rgba(0,0,0,0.4); }
+
+  /* keyboard hint */
+  kbd { background: var(--ey-gray-dark); border: 1px solid var(--ey-gray-mid); border-radius: 3px; padding: 2px 8px; font-size: 11px; font-family: 'Consolas', monospace; color: var(--ey-gray-light); }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SLIDE 1: Title -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="slide active title-slide" data-num="1">
+  <div class="ey-bar">EY<span>Building a better working world</span></div>
+  <div class="title-yellow-bar"></div>
+  <div class="section-label">Core Assurance &middot; Data &amp; Analytics</div>
+  <h1>AI-Powered Data Platform<br>&amp; Test Automation</h1>
+  <p class="subtitle">12 autonomous AI agents. Two independent products. One story ID.</p>
+  <div style="margin-top: 32px; display: flex; gap: 12px; flex-wrap: wrap;">
+    <span class="pill pill-yellow">Azure Synapse</span>
+    <span class="pill pill-yellow">Azure Data Factory</span>
+    <span class="pill pill-yellow">Azure AI Foundry</span>
+    <span class="pill pill-yellow">Playwright</span>
+    <span class="pill pill-yellow">Azure DevOps</span>
+    <span class="pill pill-yellow">Microsoft Teams</span>
+  </div>
+  <div style="margin-top: 60px; font-size: 13px; color: var(--ey-gray-light);">
+    Assurance Datawarehouse &middot; Executive Briefing &middot; April 2026
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SLIDE 2: The Problem -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="slide" data-num="2">
+  <div class="ey-bar">EY<span>Building a better working world</span></div>
+  <div class="section-label">The Challenge</div>
+  <h2>Manual Data Engineering<br>Is the Bottleneck</h2>
+  <div class="cols" style="margin-top: 20px;">
+    <div>
+      <div class="card card-red">
+        <h4>BI Model Development</h4>
+        <ul class="check-list">
+          <li class="no">2-3 weeks per medallion model</li>
+          <li class="no">Manual SQL writing, review, deployment</li>
+          <li class="no">Inconsistent naming and patterns</li>
+          <li class="no">No automated validation before deploy</li>
+          <li class="no">Knowledge siloed in individual engineers</li>
+          <li class="no">Backlog grows faster than capacity</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="card card-red">
+        <h4>Power Apps &amp; Data Testing</h4>
+        <ul class="check-list">
+          <li class="no">Test cases written manually over days</li>
+          <li class="no">Click-through testing every release</li>
+          <li class="no">No automated regression suites</li>
+          <li class="no">Data quality discovered only after incidents</li>
+          <li class="no">No unified UI + data testing framework</li>
+          <li class="no">Bug reporting to ADO is manual</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="shimmer-line"></div>
+  <div class="stats">
+    <div class="stat"><div class="value red">2-3</div><div class="label">Weeks per Model</div></div>
+    <div class="stat"><div class="value red">80%</div><div class="label">Manual Effort</div></div>
+    <div class="stat"><div class="value red">0</div><div class="label">Automated Tests</div></div>
+    <div class="stat"><div class="value red">Growing</div><div class="label">Story Backlog</div></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SLIDE 3: The Solution -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="slide" data-num="3">
+  <div class="ey-bar">EY<span>Building a better working world</span></div>
+  <div class="section-label">The Solution</div>
+  <h2>One Story ID &rarr; <span class="ey-highlight">Everything Automated</span></h2>
+  <p>Enter an Azure DevOps work item. 12 AI agents handle the rest.</p>
+  <div class="cols" style="margin-top: 24px;">
+    <div>
+      <div class="card card-green">
+        <h4>Product 1: BI Pipeline Automation</h4>
+        <ul class="check-list">
+          <li class="yes">Story to deployed medallion model in minutes</li>
+          <li class="yes">AI generates Bronze / Silver / Gold SQL</li>
+          <li class="yes">ADF incremental load pipelines auto-created</li>
+          <li class="yes">AI Code Review before deployment</li>
+          <li class="yes">Human review gate with approve / decline</li>
+          <li class="yes">Self-healing on deployment failures</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="card card-green">
+        <h4>Product 2: Test Automation Platform</h4>
+        <ul class="check-list">
+          <li class="yes">AI routes stories to UI / Data / Both</li>
+          <li class="yes">Playwright drives browser on QA's machine live</li>
+          <li class="yes">SQL data validation tests run server-side</li>
+          <li class="yes">Auto-creates ADO Test Plans, Cases, Bugs</li>
+          <li class="yes">Excel reports + Teams adaptive cards</li>
+          <li class="yes">Custom test categories managed in Web UI</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="shimmer-line"></div>
+  <div class="stats">
+    <div class="stat"><div class="value ey-highlight">12</div><div class="label">AI Agents</div></div>
+    <div class="stat"><div class="value ey-highlight">45</div><div class="label">HTTP Endpoints</div></div>
+    <div class="stat"><div class="value ey-highlight">2</div><div class="label">Independent Products</div></div>
+    <div class="stat"><div class="value ey-highlight">1</div><div class="label">Day to Integrate</div></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SLIDE 4: Impact Numbers -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="slide" data-num="4">
+  <div class="ey-bar">EY<span>Building a better working world</span></div>
+  <div class="section-label">Business Impact</div>
+  <h2>Measurable Acceleration</h2>
+  <div class="stats" style="margin-top: 40px;">
+    <div class="stat"><div class="value green">95%</div><div class="label">Reduction in Build Time</div></div>
+    <div class="stat"><div class="value green">10x</div><div class="label">Story Throughput</div></div>
+    <div class="stat"><div class="value green">100%</div><div class="label">Automated Validation</div></div>
+  </div>
+  <div class="shimmer-line"></div>
+  <table style="margin-top: 20px;">
+    <tr><th>Metric</th><th>Before (Manual)</th><th>After (AI Platform)</th><th>Improvement</th></tr>
+    <tr><td>Time per medallion model</td><td class="red">2-3 weeks</td><td class="green">10-15 minutes</td><td class="ey-highlight">95% faster</td></tr>
+    <tr><td>Stories delivered per sprint</td><td class="red">1-2 per engineer</td><td class="green">10-20 per engineer</td><td class="ey-highlight">10x throughput</td></tr>
+    <tr><td>Code review coverage</td><td class="red">Varies</td><td class="green">100% (7 categories)</td><td class="ey-highlight">Complete</td></tr>
+    <tr><td>Data quality validation</td><td class="red">Post-incident</td><td class="green">Every deployment</td><td class="ey-highlight">Proactive</td></tr>
+    <tr><td>Naming consistency</td><td class="red">Team-dependent</td><td class="green">Convention-enforced</td><td class="ey-highlight">100%</td></tr>
+    <tr><td>Test creation time</td><td class="red">Days per story</td><td class="green">Minutes (AI-generated)</td><td class="ey-highlight">95% faster</td></tr>
+    <tr><td>Regression testing</td><td class="red">Manual per release</td><td class="green">Automated, replayable</td><td class="ey-highlight">Continuous</td></tr>
+  </table>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SLIDE 5: Section Divider - Architecture -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="slide divider-slide" data-num="5">
+  <div class="ey-bar">EY<span>Building a better working world</span></div>
+  <div class="section-label">Deep Dive</div>
+  <h2>Platform Architecture</h2>
+  <p>Two independent products. One shared infrastructure. Zero vendor lock-in.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SLIDE 6: Two-Product Architecture -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="slide" data-num="6">
+  <div class="ey-bar">EY<span>Building a better working world</span></div>
+  <div class="section-label">Architecture</div>
+  <h2>Two Independent Products</h2>
+  <p>Deploy, scale, and manage each product independently. Share infrastructure costs.</p>
+  <div class="cols" style="margin-top: 20px;">
+    <div>
+      <div class="card">
+        <h4 style="color: var(--ey-yellow);">Product 1: BI Pipeline</h4>
+        <p style="font-size: 12px; color: var(--ey-gray-light);">{prefix}-{env}-func</p>
+        <table style="margin-top: 10px;">
+          <tr><td style="font-size: 12px;">HTTP Endpoints</td><td style="font-size: 12px; color: var(--ey-yellow); font-weight: 700;">34</td></tr>
+          <tr><td style="font-size: 12px;">Orchestrator Steps</td><td style="font-size: 12px; color: var(--ey-yellow); font-weight: 700;">9</td></tr>
+          <tr><td style="font-size: 12px;">AI Agents</td><td style="font-size: 12px; color: var(--ey-yellow); font-weight: 700;">5 + Discovery</td></tr>
+          <tr><td style="font-size: 12px;">Durable Task Hub</td><td style="font-size: 12px;">BiAutoHubV8</td></tr>
+        </table>
+      </div>
+    </div>
+    <div>
+      <div class="card card-teal">
+        <h4 style="color: var(--ey-teal);">Product 2: Test Automation</h4>
+        <p style="font-size: 12px; color: var(--ey-gray-light);">{prefix}-{env}-test-func</p>
+        <table style="margin-top: 10px;">
+          <tr><td style="font-size: 12px;">HTTP Endpoints</td><td style="font-size: 12px; color: var(--ey-teal); font-weight: 700;">11</td></tr>
+          <tr><td style="font-size: 12px;">Orchestrator Steps</td><td style="font-size: 12px; color: var(--ey-teal); font-weight: 700;">6</td></tr>
+          <tr><td style="font-size: 12px;">AI Agents</td><td style="font-size: 12px; color: var(--ey-teal); font-weight: 700;">6</td></tr>
+          <tr><td style="font-size: 12px;">Durable Task Hub</td><td style="font-size: 12px;">BiAutoTestHubV1</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+  <h3 style="margin-top: 28px; font-size: 16px;">Shared Infrastructure (No Duplication)</h3>
+  <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+    <span class="pill pill-yellow">App Service Plan (EP1)</span>
+    <span class="pill pill-yellow">Storage Account</span>
+    <span class="pill pill-yellow">Key Vault</span>
+    <span class="pill pill-yellow">App Insights</span>
+    <span class="pill pill-yellow">Azure SQL DB</span>
+    <span class="pill pill-yellow">Synapse Pool</span>
+    <span class="pill pill-yellow">Data Factory</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SLIDE 7: BI Pipeline Flow -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="slide" data-num="7">
+  <div class="ey-bar">EY<span>Building a better working world</span></div>
+  <div class="section-label">Product 1</div>
+  <h2>BI Pipeline &mdash; Agent Flow</h2>
+  <p>9-step orchestrated pipeline from story to deployed data model.</p>
+  <div class="flow" style="margin-top: 30px;">
+    <div class="flow-node"><div class="emoji">&#128203;</div><div class="name">ADO Story</div><div class="desc">Fetch work item</div></div>
+    <div class="flow-arrow">&#8594;</div>
+    <div class="flow-node ai"><div class="emoji">&#129302;</div><div class="name">Planner</div><div class="desc">Analyze + plan</div></div>
+    <div class="flow-arrow">&#8594;</div>
+    <div class="flow-node" style="border-color: var(--ey-yellow);"><div class="emoji">&#9745;&#65039;</div><div class="name">Review Gate</div><div class="desc">Human approve</div></div>
+    <div class="flow-arrow">&#8594;</div>
+    <div class="flow-node ai"><div class="emoji">&#128187;</div><div class="name">Developer</div><div class="desc">Generate SQL + ADF</div></div>
+    <div class="flow-arrow">&#8594;</div>
+    <div class="flow-node ai"><div class="emoji">&#128269;</div><div class="name">Code Review</div><div class="desc">7-category AI review</div></div>
+  </div>
+  <div class="flow">
+    <div class="flow-arrow">&#8594;</div>
+    <div class="flow-node"><div class="emoji">&#9989;</div><div class="name">Pre-Validate</div><div class="desc">Syntax check</div></div>
+    <div class="flow-arrow">&#8594;</div>
+    <div class="flow-node done"><div class="emoji">&#128640;</div><div class="name">Deploy</div><div class="desc">Synapse + ADF</div></div>
+    <div class="flow-arrow">&#8594;</div>
+    <div class="flow-node done"><div class="emoji">&#128200;</div><div class="name">Post-Validate</div><div class="desc">DQ scoring</div></div>
+    <div class="flow-arrow">&#8594;</div>
+    <div class="flow-node ai"><div class="emoji">&#128657;</div><div class="name">Healer</div><div class="desc">Self-fix failures</div></div>
+  </div>
+  <div class="quote" style="margin-top: 24px;">
+    "If deployment fails, the Healer Agent analyzes the error, generates a fix, and re-deploys &mdash; no human intervention required."
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SLIDE 8: Test Automation Flow -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="slide" data-num="8">
+  <div class="ey-bar">EY<span>Building a better working world</span></div>
+  <div class="section-label">Product 2</div>
+  <h2>Test Automation &mdash; Agent Flow</h2>
+  <p>AI-powered testing for Power Apps (UI) and data warehouse (SQL). Routes intelligently.</p>
+  <div class="flow" style="margin-top: 30px;">
+    <div class="flow-node"><div class="emoji">&#128203;</div><div class="name">Story</div><div class="desc">Any format</div></div>
+    <div class="flow-arrow">&#8594;</div>
+    <div class="flow-node ai"><div class="emoji">&#129302;</div><div class="name">Router</div><div class="desc">UI / Data / Both</div></div>
+    <div class="flow-arrow">&#8594;</div>
+    <div class="flow-node ai"><div class="emoji">&#128221;</div><div class="name">Test Planner</div><div class="desc">Generate scenarios</div></div>
+    <div class="flow-arrow">&#8594;</div>
+    <div class="flow-node ai"><div class="emoji">&#128187;</div><div class="name">Generator</div><div class="desc">Playwright scripts</div></div>
+    <div class="flow-arrow">&#8594;</div>
+    <div class="flow-node done"><div class="emoji">&#127916;</div><div class="name">Executor</div><div class="desc">Run on QA machine</div></div>
+    <div class="flow-arrow">&#8594;</div>
+    <div class="flow-node done"><div class="emoji">&#128202;</div><div class="name">Reporter</div><div class="desc">ADO + Excel + Teams</div></div>
+  </div>
+  <div class="cols" style="margin-top: 28px;">
+    <div>
+      <div class="card card-teal">
+        <h4>UI Testing</h4>
+        <p>QA watches the agent drive Microsoft Edge in real-time. Headed mode, visible clicks, live streaming to Web UI.</p>
+      </div>
+    </div>
+    <div>
+      <div class="card card-blue">
+        <h4>Data Testing</h4>
+        <p>SQL validation: row counts, null checks, duplicates, referential integrity, cross-layer consistency. Server-side execution.</p>
+      </div>
+    </div>
+    <div>
+      <div class="card card-purple">
+        <h4>Reporting</h4>
+        <p>Auto-creates ADO Test Plans + Cases + Runs. Files bugs for failures. Excel workbook with formatted results. Teams cards.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SLIDE 9: Section Divider - Integration Mode -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="slide divider-slide" data-num="9">
+  <div class="ey-bar">EY<span>Building a better working world</span></div>
+  <div class="section-label">Game Changer</div>
+  <h2>Integration Mode</h2>
+  <p>Plug into the platform you already have. No rip-and-replace. No migration.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SLIDE 10: Integration Mode - The Problem -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="slide" data-num="10">
+  <div class="ey-bar">EY<span>Building a better working world</span></div>
+  <div class="section-label">Integration Mode</div>
+  <h2>Your Platform. <span class="ey-highlight">Our Intelligence.</span></h2>
+  <p style="font-size: 18px; margin-bottom: 24px;">Enterprise teams already have mature data platforms. They don't need another one. They need acceleration.</p>
+  <div class="vs-row">
+    <div class="vs-box them">
+      <div class="vs-label red">What Competitors Ask You to Do</div>
+      <ul class="check-list">
+        <li class="no">Migrate to their platform (Fabric, Informatica)</li>
+        <li class="no">Learn their proprietary interface</li>
+        <li class="no">Replace your CI/CD with theirs</li>
+        <li class="no">Abandon your naming conventions</li>
+        <li class="no">Re-train your engineering team</li>
+        <li class="no">6-12 month implementation timeline</li>
+      </ul>
+    </div>
+    <div class="vs-box us">
+      <div class="vs-label green">What We Do</div>
+      <ul class="check-list">
+        <li class="yes">Connect to your existing Synapse, ADF, ADLS</li>
+        <li class="yes">Auto-detect your naming conventions</li>
+        <li class="yes">Generate code that matches your style</li>
+        <li class="yes">Deliver through your existing CI/CD as a PR</li>
+        <li class="yes">Your engineers review, your pipeline deploys</li>
+        <li class="yes">Day 1 integration</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SLIDE 11: Integration Mode - How It Works -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="slide" data-num="11">
+  <div class="ey-bar">EY<span>Building a better working world</span></div>
+  <div class="section-label">Integration Mode</div>
+  <h2>Four-Step Onboarding</h2>
+  <div class="card-grid" style="margin-top: 24px;">
+    <div class="card">
+      <div class="icon">&#128301;</div>
+      <h4>Step 1: Discover</h4>
+      <p>Discovery Agent scans your existing Synapse (schemas, tables, views, procs, distributions), ADF (pipelines, datasets, triggers), and ADLS (folders, formats).</p>
+      <p style="color: var(--ey-yellow); font-size: 12px; font-weight: 600;">10-15 minutes, fully automated</p>
+    </div>
+    <div class="card">
+      <div class="icon">&#128208;</div>
+      <h4>Step 2: Learn Conventions</h4>
+      <p>Convention Adapter auto-detects your naming patterns: prefixes, case (snake_case / PascalCase), schema purposes, distribution strategies.</p>
+      <p style="color: var(--ey-yellow); font-size: 12px; font-weight: 600;">Rules generated, you can override</p>
+    </div>
+    <div class="card">
+      <div class="icon">&#128203;</div>
+      <h4>Step 3: Submit Stories</h4>
+      <p>Same workflow as always. Planner and Developer agents now use YOUR catalog and YOUR conventions. Generated SQL looks like your team wrote it.</p>
+      <p style="color: var(--ey-yellow); font-size: 12px; font-weight: 600;">Any format: Gherkin, bullets, plain English</p>
+    </div>
+    <div class="card">
+      <div class="icon">&#128230;</div>
+      <h4>Step 4: Receive PR</h4>
+      <p>Artifacts delivered as a Pull Request to your ADO repo. Your team reviews. Your CI/CD deploys. Your governance process stays intact.</p>
+      <p style="color: var(--ey-yellow); font-size: 12px; font-weight: 600;">Full audit trail in your system</p>
+    </div>
+  </div>
+  <div class="quote" style="margin-top: 16px;">
+    "It already knows our naming conventions, our folder structure, our pipeline patterns. The SQL it generated looks like our team wrote it."
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SLIDE 12: Convention Detection -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="slide" data-num="12">
+  <div class="ey-bar">EY<span>Building a better working world</span></div>
+  <div class="section-label">Integration Mode</div>
+  <h2>Auto-Detected Conventions</h2>
+  <p>The Discovery Agent reads your environment and generates rules. All agents follow them.</p>
+  <table style="margin-top: 20px;">
+    <tr><th>Detection</th><th>Example</th><th>Effect on Generated Code</th></tr>
+    <tr><td>Naming case</td><td><code>raw_customer_orders</code> detected</td><td>All objects use <code>snake_case</code></td></tr>
+    <tr><td>Table prefix</td><td>80% of tables start with <code>tbl_</code></td><td>Generated tables get <code>tbl_</code> prefix</td></tr>
+    <tr><td>View prefix</td><td>90% of views start with <code>vw_</code></td><td>Generated views get <code>vw_</code> prefix</td></tr>
+    <tr><td>Bronze schema</td><td>Schema <code>[raw]</code> has external tables only</td><td>Bronze layer targets <code>[raw]</code></td></tr>
+    <tr><td>Silver schema</td><td>Schema <code>[cleansed]</code> has tables + procs</td><td>Silver layer targets <code>[cleansed]</code></td></tr>
+    <tr><td>Gold schema</td><td>Schema <code>[analytics]</code> is view-heavy</td><td>Gold layer targets <code>[analytics]</code></td></tr>
+    <tr><td>Distribution</td><td>70% use HASH distribution</td><td>Default distribution set to HASH</td></tr>
+    <tr><td>ADF naming</td><td>Pipelines follow <code>pl_{src}_{tgt}</code></td><td>Generated pipelines match pattern</td></tr>
+    <tr><td>Delivery mode</td><td>Client has CI/CD pipeline</td><td>Artifacts delivered as PR, not deployed</td></tr>
+  </table>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SLIDE 13: Three Modes Comparison -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="slide" data-num="13">
+  <div class="ey-bar">EY<span>Building a better working world</span></div>
+  <div class="section-label">Platform Modes</div>
+  <h2>Three Modes, One Platform</h2>
+  <table style="margin-top: 24px;">
+    <tr><th>Aspect</th><th style="color: var(--ey-green);">Greenfield</th><th style="color: var(--ey-blue);">Brownfield</th><th style="color: var(--ey-yellow);">Integration Mode</th></tr>
+    <tr><td>Target</td><td>New platform</td><td>Our existing deploy</td><td><strong>Client's existing platform</strong></td></tr>
+    <tr><td>Discovery</td><td>N/A</td><td>Check existing tables</td><td><strong>Full environment scan</strong></td></tr>
+    <tr><td>Conventions</td><td>Our defaults</td><td>Our conventions</td><td><strong>Client's auto-detected conventions</strong></td></tr>
+    <tr><td>Delivery</td><td>Direct deploy</td><td>Direct deploy</td><td><strong>Pull Request to client's repo</strong></td></tr>
+    <tr><td>Schema names</td><td>bronze/silver/gold</td><td>bronze/silver/gold</td><td><strong>Client's actual names</strong></td></tr>
+    <tr><td>CI/CD</td><td>Our pipeline</td><td>Our pipeline</td><td><strong>Client's existing CI/CD</strong></td></tr>
+    <tr><td>Risk</td><td>None (new)</td><td>Low (additive)</td><td><strong>Minimal (PR review gate)</strong></td></tr>
+    <tr><td>Onboarding</td><td>Deploy infra</td><td>Deploy code</td><td><strong>Connect + Discover (1 day)</strong></td></tr>
+  </table>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SLIDE 14: Section Divider - Competition -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="slide divider-slide" data-num="14">
+  <div class="ey-bar">EY<span>Building a better working world</span></div>
+  <div class="section-label">Market Position</div>
+  <h2>Competitive Landscape</h2>
+  <p>How we compare to every alternative on the market.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SLIDE 15: Competitive Matrix -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="slide" data-num="15">
+  <div class="ey-bar">EY<span>Building a better working world</span></div>
+  <div class="section-label">Competitive Analysis</div>
+  <h2>Feature Comparison</h2>
+  <table style="margin-top: 16px; font-size: 12px;">
+    <tr>
+      <th>Capability</th>
+      <th style="color: var(--ey-yellow);">Our Platform</th>
+      <th>Fabric Copilot</th>
+      <th>Informatica CLAIRE</th>
+      <th>dbt</th>
+      <th>Coalesce</th>
+      <th>Matillion</th>
+      <th>Prophecy</th>
+    </tr>
+    <tr><td>Story-to-SQL automation</td><td class="green">&#9679; Full</td><td class="red">&#9675; No</td><td class="red">&#9675; No</td><td class="red">&#9675; No</td><td class="red">&#9675; No</td><td class="red">&#9675; No</td><td class="orange">&#9676; Partial</td></tr>
+    <tr><td>Medallion architecture gen</td><td class="green">&#9679; Full</td><td class="red">&#9675; No</td><td class="red">&#9675; No</td><td class="orange">&#9676; Manual</td><td class="orange">&#9676; Manual</td><td class="orange">&#9676; Manual</td><td class="orange">&#9676; Manual</td></tr>
+    <tr><td>Existing environment scan</td><td class="green">&#9679; Full</td><td class="red">&#9675; No</td><td class="green">&#9679; Catalog</td><td class="red">&#9675; No</td><td class="red">&#9675; No</td><td class="red">&#9675; No</td><td class="red">&#9675; No</td></tr>
+    <tr><td>Auto-detect conventions</td><td class="green">&#9679; Full</td><td class="red">&#9675; No</td><td class="red">&#9675; No</td><td class="red">&#9675; No</td><td class="red">&#9675; No</td><td class="red">&#9675; No</td><td class="red">&#9675; No</td></tr>
+    <tr><td>Multi-agent SDLC</td><td class="green">&#9679; 12 agents</td><td class="red">&#9675; No</td><td class="orange">&#9676; Specialized</td><td class="red">&#9675; No</td><td class="red">&#9675; No</td><td class="red">&#9675; No</td><td class="red">&#9675; No</td></tr>
+    <tr><td>Self-healing pipeline</td><td class="green">&#9679; Yes</td><td class="red">&#9675; No</td><td class="red">&#9675; No</td><td class="red">&#9675; No</td><td class="red">&#9675; No</td><td class="red">&#9675; No</td><td class="red">&#9675; No</td></tr>
+    <tr><td>PR delivery mode</td><td class="green">&#9679; Yes</td><td class="red">&#9675; No</td><td class="red">&#9675; No</td><td class="green">&#9679; CI</td><td class="green">&#9679; Git</td><td class="red">&#9675; No</td><td class="green">&#9679; Git</td></tr>
+    <tr><td>ADF pipeline generation</td><td class="green">&#9679; Full</td><td class="orange">&#9676; Partial</td><td class="orange">&#9676; Own format</td><td class="red">&#9675; No</td><td class="red">&#9675; No</td><td class="orange">&#9676; Own format</td><td class="orange">&#9676; Own format</td></tr>
+    <tr><td>Azure Synapse native</td><td class="green">&#9679; Yes</td><td class="orange">&#9676; Fabric only</td><td class="orange">&#9676; Connector</td><td class="orange">&#9676; Adapter</td><td class="red">&#9675; No</td><td class="green">&#9679; Yes</td><td class="red">&#9675; No</td></tr>
+    <tr><td>Test automation (UI+Data)</td><td class="green">&#9679; Full</td><td class="red">&#9675; No</td><td class="red">&#9675; No</td><td class="orange">&#9676; Data only</td><td class="red">&#9675; No</td><td class="red">&#9675; No</td><td class="red">&#9675; No</td></tr>
+    <tr><td>Works with existing stack</td><td class="green">&#9679; Day 1</td><td class="red">&#9675; Migration</td><td class="orange">&#9676; 6-12 mo</td><td class="orange">&#9676; Weeks</td><td class="orange">&#9676; Weeks</td><td class="orange">&#9676; Weeks</td><td class="orange">&#9676; Weeks</td></tr>
+  </table>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SLIDE 16: Why Not Competitors -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="slide" data-num="16">
+  <div class="ey-bar">EY<span>Building a better working world</span></div>
+  <div class="section-label">Competitive Analysis</div>
+  <h2>Why Not the Alternatives?</h2>
+  <div class="card-grid" style="margin-top: 16px;">
+    <div class="card card-red">
+      <h4>Microsoft Fabric Copilot</h4>
+      <p>Smart autocomplete, not autonomous. Requires F64 capacity ($5K+/mo). Must migrate from Synapse to Fabric. Doesn't orchestrate end-to-end.</p>
+      <p style="color: var(--ey-yellow); font-size: 12px; margin-top: 8px;">A copilot helps you type. We do the typing.</p>
+    </div>
+    <div class="card card-red">
+      <h4>Informatica CLAIRE</h4>
+      <p>Governance and cataloging platform, not warehouse automation. $200K-$500K+ Year 1. 6-12 month implementation. CLAIRE Agents don't write Synapse DDL.</p>
+      <p style="color: var(--ey-yellow); font-size: 12px; margin-top: 8px;">A governance platform. We're a development accelerator.</p>
+    </div>
+    <div class="card card-red">
+      <h4>dbt / Coalesce / Matillion</h4>
+      <p>Frameworks that make manual work more organized. You still write every SQL model / drag every node. No AI generation from business requirements.</p>
+      <p style="color: var(--ey-yellow); font-size: 12px; margin-top: 8px;">Better tooling for engineers. We eliminate the manual work.</p>
+    </div>
+    <div class="card card-red">
+      <h4>Build It Yourself</h4>
+      <p>3-5 senior engineers, 6-12 months, $500K-$1M. The LLM call is 10% of the work. Orchestration, Synapse quirks, self-healing, convention detection is the other 90%.</p>
+      <p style="color: var(--ey-yellow); font-size: 12px; margin-top: 8px;">We've already built it. 12 agents, 45 endpoints, tested.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SLIDE 17: Cost Comparison -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="slide" data-num="17">
+  <div class="ey-bar">EY<span>Building a better working world</span></div>
+  <div class="section-label">Economics</div>
+  <h2>Cost Comparison</h2>
+  <table style="margin-top: 24px;">
+    <tr><th>Solution</th><th>Year 1 Cost</th><th>Annual Ongoing</th><th>Time to Value</th><th>Requires Migration?</th></tr>
+    <tr style="background: rgba(255,230,0,0.05);">
+      <td><strong style="color: var(--ey-yellow);">Our Platform</strong></td>
+      <td><strong class="green">$500-1,500/mo Azure</strong></td>
+      <td><strong class="green">Same</strong></td>
+      <td><strong class="green">1 Day</strong></td>
+      <td><strong class="green">No</strong></td>
+    </tr>
+    <tr><td>Fabric Copilot</td><td>$60K+ (F64 capacity)</td><td>$60K+</td><td>3-6 months</td><td class="red">Yes (to Fabric)</td></tr>
+    <tr><td>Informatica CLAIRE</td><td>$200K-500K+</td><td>$150K+</td><td>6-12 months</td><td class="red">Yes (IDMC)</td></tr>
+    <tr><td>dbt Cloud Enterprise</td><td>$50K+</td><td>$50K+</td><td>1-3 months</td><td class="orange">New runtime</td></tr>
+    <tr><td>Coalesce Enterprise</td><td>$30K+</td><td>$30K+</td><td>1-3 months</td><td class="orange">New platform</td></tr>
+    <tr><td>Matillion Enterprise</td><td>$40K-100K+</td><td>$40K+</td><td>1-3 months</td><td class="orange">New runtime</td></tr>
+    <tr><td>Internal Build</td><td class="red">$500K-1M</td><td class="red">$200K+ maintenance</td><td class="red">6-12 months</td><td>N/A</td></tr>
+  </table>
+  <div class="quote" style="margin-top: 20px;">
+    "The only solution on this list that costs nothing beyond the Azure infrastructure you already pay for, requires no migration, and delivers value on Day 1."
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SLIDE 18: Section Divider - Technology -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="slide divider-slide" data-num="18">
+  <div class="ey-bar">EY<span>Building a better working world</span></div>
+  <div class="section-label">Under the Hood</div>
+  <h2>Technology Stack</h2>
+  <p>Built entirely on Azure. No third-party platforms. No vendor lock-in.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SLIDE 19: Azure Resources -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="slide" data-num="19">
+  <div class="ey-bar">EY<span>Building a better working world</span></div>
+  <div class="section-label">Infrastructure</div>
+  <h2>Azure Resource Inventory</h2>
+  <p>13 resource types. All deployed via Bicep IaC. Single <code>az deployment</code> command.</p>
+  <div class="card-grid" style="margin-top: 16px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+    <div class="card" style="padding: 14px;"><h4 style="font-size: 13px;">&#128187; Synapse Dedicated Pool</h4><p style="font-size: 11px;">DW100c &middot; Medallion data warehouse</p></div>
+    <div class="card" style="padding: 14px;"><h4 style="font-size: 13px;">&#9889; Function App (BI)</h4><p style="font-size: 11px;">Premium EP1 &middot; 34 endpoints</p></div>
+    <div class="card" style="padding: 14px;"><h4 style="font-size: 13px;">&#9889; Function App (Test)</h4><p style="font-size: 11px;">Shared EP1 &middot; 11 endpoints</p></div>
+    <div class="card" style="padding: 14px;"><h4 style="font-size: 13px;">&#128218; Azure SQL Database</h4><p style="font-size: 11px;">Config DB + Source Data</p></div>
+    <div class="card" style="padding: 14px;"><h4 style="font-size: 13px;">&#128274; Key Vault</h4><p style="font-size: 11px;">Secrets + RBAC for all identities</p></div>
+    <div class="card" style="padding: 14px;"><h4 style="font-size: 13px;">&#128451; ADLS Gen2</h4><p style="font-size: 11px;">Bronze data lake + artifacts</p></div>
+    <div class="card" style="padding: 14px;"><h4 style="font-size: 13px;">&#9881; Data Factory</h4><p style="font-size: 11px;">Incremental load pipelines</p></div>
+    <div class="card" style="padding: 14px;"><h4 style="font-size: 13px;">&#129302; AI Foundry</h4><p style="font-size: 11px;">Phi-4 model &middot; LLM for all agents</p></div>
+    <div class="card" style="padding: 14px;"><h4 style="font-size: 13px;">&#128200; App Insights</h4><p style="font-size: 11px;">Telemetry + monitoring</p></div>
+    <div class="card" style="padding: 14px;"><h4 style="font-size: 13px;">&#128221; Log Analytics</h4><p style="font-size: 11px;">90-day centralized logs</p></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SLIDE 20: Security & Governance -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="slide" data-num="20">
+  <div class="ey-bar">EY<span>Building a better working world</span></div>
+  <div class="section-label">Enterprise Readiness</div>
+  <h2>Security &amp; Governance</h2>
+  <div class="card-grid" style="margin-top: 24px;">
+    <div class="card">
+      <div class="icon">&#128274;</div>
+      <h4>Zero Secrets in Code</h4>
+      <p>All credentials stored in Key Vault. Managed Identity for service-to-service auth. No passwords in config files or logs.</p>
+    </div>
+    <div class="card">
+      <div class="icon">&#128737;</div>
+      <h4>SQL Injection Prevention</h4>
+      <p>All dynamic SQL sanitized. Parameterized queries. Input validation at every endpoint. No raw string concatenation.</p>
+    </div>
+    <div class="card">
+      <div class="icon">&#9989;</div>
+      <h4>Human Review Gate</h4>
+      <p>AI generates, humans approve. Every pipeline pauses for review. Approve/Decline with full artifact visibility before any deployment.</p>
+    </div>
+    <div class="card">
+      <div class="icon">&#128466;</div>
+      <h4>Full Audit Trail</h4>
+      <p>Every pipeline execution logged with timestamp, user, story ID, artifacts, validation scores, deployment status. Config DB audit schema.</p>
+    </div>
+    <div class="card">
+      <div class="icon">&#128272;</div>
+      <h4>RBAC + TLS 1.2</h4>
+      <p>Managed identities with least-privilege Key Vault access. HTTPS-only. FTPS disabled. Function key authentication on all endpoints.</p>
+    </div>
+    <div class="card">
+      <div class="icon">&#128230;</div>
+      <h4>PR Delivery for Compliance</h4>
+      <p>Integration Mode delivers through client's existing change management. PR = audit trail, reviewer sign-off, standard rollback.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SLIDE 21: Roadmap -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="slide" data-num="21">
+  <div class="ey-bar">EY<span>Building a better working world</span></div>
+  <div class="section-label">What's Next</div>
+  <h2>Product Roadmap</h2>
+  <div class="cols" style="margin-top: 24px;">
+    <div>
+      <h3 style="font-size: 16px;">Delivered (POC)</h3>
+      <ul class="check-list" style="font-size: 13px;">
+        <li class="yes">12 AI agents across 2 products</li>
+        <li class="yes">Greenfield + Brownfield + Integration Mode</li>
+        <li class="yes">Discovery Agent + Convention Adapter</li>
+        <li class="yes">PR Delivery Mode</li>
+        <li class="yes">Human review gate + Cancel flow</li>
+        <li class="yes">Self-healing Healer Agent</li>
+        <li class="yes">Teams adaptive card notifications</li>
+        <li class="yes">UI + Data test automation</li>
+        <li class="yes">Web UI with 15 pages</li>
+        <li class="yes">Full Bicep IaC deployment</li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="font-size: 16px; color: var(--ey-teal);">Phase 2 (Production)</h3>
+      <ul class="ey-list" style="font-size: 13px;">
+        <li>Multi-tenant SaaS deployment model</li>
+        <li>Power BI report auto-generation (beyond datasets)</li>
+        <li>Databricks / Snowflake target support</li>
+        <li>Advanced semantic layer (metrics, KPIs)</li>
+        <li>Git-based version control for all artifacts</li>
+        <li>Role-based Web UI access control</li>
+        <li>Custom LLM model fine-tuning on client data</li>
+      </ul>
+      <h3 style="font-size: 16px; color: var(--ey-purple); margin-top: 20px;">Phase 3 (Scale)</h3>
+      <ul class="ey-list" style="font-size: 13px;">
+        <li>Multi-cloud support (AWS Redshift, GCP BigQuery)</li>
+        <li>Marketplace listing (Azure / EY Consulting)</li>
+        <li>Self-service onboarding portal</li>
+        <li>AI-driven performance optimization agent</li>
+        <li>Real-time streaming pipeline support</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- SLIDE 22: Closing -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="slide title-slide" data-num="22">
+  <div class="ey-bar">EY<span>Building a better working world</span></div>
+  <div class="title-yellow-bar"></div>
+  <h2 style="font-size: 44px; margin-bottom: 24px;">Every other tool helps your engineers<br>work faster.</h2>
+  <h2 style="font-size: 44px; color: var(--ey-yellow); margin-bottom: 36px;">We do the work.</h2>
+  <div class="shimmer-line"></div>
+  <div class="stats" style="margin-top: 24px;">
+    <div class="stat"><div class="value ey-highlight">12</div><div class="label">AI Agents</div></div>
+    <div class="stat"><div class="value ey-highlight">45</div><div class="label">Endpoints</div></div>
+    <div class="stat"><div class="value ey-highlight">3</div><div class="label">Deployment Modes</div></div>
+    <div class="stat"><div class="value ey-highlight">1</div><div class="label">Day to Integrate</div></div>
+    <div class="stat"><div class="value green">$0</div><div class="label">New Licenses</div></div>
+  </div>
+  <div class="quote" style="margin-top: 32px; font-size: 20px; font-style: normal; font-weight: 500;">
+    "Your platform. Your conventions. Your CI/CD. Our intelligence."
+  </div>
+  <p style="margin-top: 40px; font-size: 14px; color: var(--ey-gray-light);">
+    EY Core Assurance &middot; Data &amp; Analytics &middot; AI Automation Practice<br>
+    <span style="color: var(--ey-yellow);">Ready for live demo</span>
+  </p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- NAVIGATION BAR -->
+<!-- ═══════════════════════════════════════════════════ -->
+<div class="nav-bar">
+  <button id="prevBtn" onclick="changeSlide(-1)">&#9664; Prev</button>
+  <div class="dots" id="dots"></div>
+  <div class="progress" id="progress">1 / 22</div>
+  <button id="nextBtn" onclick="changeSlide(1)">Next &#9654;</button>
+</div>
+
+<script>
+const slides = document.querySelectorAll('.slide');
+let current = 0;
+const visited = new Set([0]);
+
+function showSlide(n) {
+  slides[current].classList.remove('active');
+  current = Math.max(0, Math.min(n, slides.length - 1));
+  slides[current].classList.add('active');
+  visited.add(current);
+  updateNav();
+}
+
+function changeSlide(dir) { showSlide(current + dir); }
+
+function updateNav() {
+  document.getElementById('progress').textContent = `${current + 1} / ${slides.length}`;
+  const dots = document.getElementById('dots');
+  dots.innerHTML = '';
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === current ? ' active' : '') + (visited.has(i) && i !== current ? ' visited' : '');
+    d.onclick = () => showSlide(i);
+    dots.appendChild(d);
+  });
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); changeSlide(1); }
+  if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); changeSlide(-1); }
+  if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+  if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+});
+
+updateNav();
+</script>
+
+</body>
+</html>

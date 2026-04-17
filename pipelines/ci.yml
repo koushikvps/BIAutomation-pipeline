@@ -1,0 +1,242 @@
+# Azure DevOps CI Pipeline — v6.0
+# Validates agent code, runs tests, checks security, validates infrastructure
+
+trigger:
+  branches:
+    include:
+      - develop
+      - main
+      - fix/*
+      - feature/*
+
+pr:
+  branches:
+    include:
+      - develop
+      - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  pythonVersion: '3.10'
+
+stages:
+  - stage: Validate
+    displayName: 'Validate & Test'
+    jobs:
+      - job: LintAndTest
+        displayName: 'Lint + Unit Tests + Coverage'
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '$(pythonVersion)'
+            displayName: 'Use Python $(pythonVersion)'
+
+          - script: |
+              python -m pip install --upgrade pip
+              pip install -r agents/requirements.txt
+              pip install -r test-automation/requirements.txt
+              pip install pytest pytest-cov flake8 bandit
+            displayName: 'Install dependencies'
+
+          - script: |
+              flake8 agents/ --max-line-length=150 --ignore=E501,W503,E402,E722 --exclude=__pycache__,static
+              flake8 test-automation/ --max-line-length=150 --ignore=E501,W503,E402,E722 --exclude=__pycache__
+            displayName: 'Lint: flake8 (both products)'
+
+          - script: |
+              cd $(Build.SourcesDirectory)
+              python -m py_compile agents/function_app.py
+              python -m py_compile test-automation/function_app.py
+              for f in agents/shared/*.py agents/planner/*.py agents/developer/*.py agents/validator/*.py agents/healer/*.py agents/reviewer/*.py agents/fixer/*.py agents/discovery/*.py; do
+                python -m py_compile "$f" || exit 1
+              done
+              echo "All Python files compile successfully"
+            displayName: 'Compile check: all agent files'
+
+          - script: |
+              pytest tests/ -v \
+                -m "not integration" \
+                --cov=agents \
+                --cov-report=xml:coverage.xml \
+                --cov-report=term-missing \
+                --cov-fail-under=50 \
+                --junitxml=test-results.xml \
+                --tb=short
+            displayName: 'Run 127 unit tests (min 50% coverage)'
+
+          - task: PublishTestResults@2
+            inputs:
+              testResultsFormat: 'JUnit'
+              testResultsFiles: 'test-results.xml'
+              testRunTitle: 'Unit Tests — $(Build.BuildNumber)'
+            condition: always()
+
+          - task: PublishCodeCoverageResults@2
+            inputs:
+              codeCoverageTool: 'Cobertura'
+              summaryFileLocation: 'coverage.xml'
+            condition: always()
+
+      - job: SecurityScan
+        displayName: 'Security Checks'
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '$(pythonVersion)'
+
+          - script: |
+              python -m pip install --upgrade pip
+              pip install pip-audit bandit
+            displayName: 'Install security tools'
+
+          - script: |
+              pip-audit -r agents/requirements.txt --desc || echo "WARNING: Vulnerabilities found (non-blocking)"
+            displayName: 'Dependency vulnerability scan (BI)'
+            continueOnError: true
+
+          - script: |
+              pip-audit -r test-automation/requirements.txt --desc || echo "WARNING: Vulnerabilities found (non-blocking)"
+            displayName: 'Dependency vulnerability scan (Test)'
+            continueOnError: true
+
+          - script: |
+              bandit -r agents/ -ll --exclude agents/static,agents/tester/local-agent -f json -o bandit-report.json || true
+              python -c "
+              import json
+              with open('bandit-report.json') as f:
+                  data = json.load(f)
+              high = [r for r in data.get('results',[]) if r.get('issue_severity','') == 'HIGH']
+              print(f'Bandit: {len(data.get(\"results\",[]))} findings, {len(high)} HIGH severity')
+              if high:
+                  for h in high:
+                      print(f'  HIGH: {h[\"filename\"]}:{h[\"line_number\"]} — {h[\"issue_text\"]}')
+                  exit(1)
+              print('No HIGH severity issues found')
+              "
+            displayName: 'Static security analysis (bandit) — fail on HIGH'
+
+          - script: |
+              echo "=== Checking for hardcoded secrets ==="
+              # Check Python files for hardcoded passwords (excluding test files and comments)
+              FOUND=$(grep -rn "password\s*=\s*['\"][^{<]" agents/ test-automation/ \
+                --include="*.py" \
+                --exclude-dir=__pycache__ \
+                --exclude-dir=static \
+                | grep -v "test_\|conftest\|placeholder\|_PASSWORD\|environ\|example\|template\|YOUR_" || true)
+              if [ -n "$FOUND" ]; then
+                echo "ERROR: Possible hardcoded password found:"
+                echo "$FOUND"
+                exit 1
+              fi
+              # Check for API keys
+              FOUND=$(grep -rn "api.key\s*=\s*['\"][a-zA-Z0-9]" agents/ test-automation/ \
+                --include="*.py" \
+                --exclude-dir=__pycache__ \
+                | grep -v "test_\|conftest\|placeholder\|environ\|example" || true)
+              if [ -n "$FOUND" ]; then
+                echo "ERROR: Possible hardcoded API key found:"
+                echo "$FOUND"
+                exit 1
+              fi
+              echo "Secret scan passed — no hardcoded credentials found"
+            displayName: 'Hardcoded secret detection'
+
+      - job: ValidateInfra
+        displayName: 'Validate Infrastructure'
+        steps:
+          - script: |
+              echo "=== Validating Bicep templates ==="
+              # Check Bicep syntax (doesn't need Azure login for build)
+              az bicep build --file infrastructure/bicep/main.bicep --stdout > /dev/null 2>&1
+              if [ $? -eq 0 ]; then
+                echo "Bicep main.bicep: VALID"
+              else
+                echo "Bicep main.bicep: INVALID"
+                az bicep build --file infrastructure/bicep/main.bicep
+                exit 1
+              fi
+            displayName: 'Validate Bicep syntax'
+
+          - script: |
+              echo "=== Validating SQL DDL scripts ==="
+              for f in catalog/ddl/*.sql; do
+                if [ -f "$f" ]; then
+                  echo "Checking $(basename $f)..."
+                  # Check for common SQL issues
+                  if grep -qi "DROP DATABASE" "$f"; then
+                    echo "ERROR: DROP DATABASE found in $f"
+                    exit 1
+                  fi
+                fi
+              done
+              echo "SQL DDL validation passed"
+            displayName: 'Validate SQL DDL (no DROP DATABASE)'
+
+          - script: |
+              echo "=== Validating docker-compose ==="
+              if command -v docker-compose &> /dev/null; then
+                docker-compose config -q && echo "docker-compose.yml: VALID" || echo "docker-compose.yml: INVALID (non-blocking)"
+              else
+                python3 -c "import yaml; yaml.safe_load(open('docker-compose.yml'))" && echo "docker-compose.yml: Valid YAML"
+              fi
+            displayName: 'Validate docker-compose.yml'
+
+          - script: |
+              echo "=== Validating host.json files ==="
+              python3 -c "
+              import json
+              for path in ['agents/host.json', 'test-automation/host.json']:
+                  with open(path) as f:
+                      data = json.load(f)
+                  hub = data.get('extensions',{}).get('durableTask',{}).get('hubName','')
+                  print(f'{path}: hub={hub}, timeout={data.get(\"functionTimeout\",\"default\")}')
+              "
+            displayName: 'Validate host.json (hub names, timeouts)'
+
+      - job: ValidateConsistency
+        displayName: 'Cross-Product Consistency'
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '$(pythonVersion)'
+
+          - script: |
+              python3 -c "
+              import json, os, sys
+
+              errors = []
+
+              # Check both products have requirements.txt
+              for path in ['agents/requirements.txt', 'test-automation/requirements.txt']:
+                  if not os.path.exists(path):
+                      errors.append(f'Missing: {path}')
+
+              # Check both products have host.json with distinct hub names
+              hubs = set()
+              for path in ['agents/host.json', 'test-automation/host.json']:
+                  if os.path.exists(path):
+                      with open(path) as f:
+                          data = json.load(f)
+                      hub = data.get('extensions',{}).get('durableTask',{}).get('hubName','')
+                      if hub in hubs:
+                          errors.append(f'Duplicate hub name: {hub} in {path}')
+                      hubs.add(hub)
+
+              # Check function_app.py exists in both products
+              for path in ['agents/function_app.py', 'test-automation/function_app.py']:
+                  if not os.path.exists(path):
+                      errors.append(f'Missing: {path}')
+
+              if errors:
+                  print('CONSISTENCY ERRORS:')
+                  for e in errors:
+                      print(f'  - {e}')
+                  sys.exit(1)
+
+              print('Cross-product consistency: PASSED')
+              print(f'  Hub names: {hubs}')
+              print(f'  Both products have function_app.py + host.json + requirements.txt')
+              "
+            displayName: 'Validate two-product consistency'

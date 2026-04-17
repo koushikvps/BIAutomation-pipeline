@@ -1,0 +1,270 @@
+# Azure DevOps CD Pipeline - Deploy to Dev (v6.0)
+# Triggers on merge to develop branch
+# Gate: unit tests must pass before any deployment
+
+trigger:
+  branches:
+    include:
+      - develop
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+parameters:
+  - name: prefix
+    displayName: 'Resource name prefix'
+    type: string
+    default: 'biautomation'
+  - name: environment
+    displayName: 'Environment'
+    type: string
+    default: 'dev'
+    values: ['dev', 'qa', 'prod']
+
+variables:
+  azureSubscription: 'biautomation-service-connection'
+  prefix: ${{ parameters.prefix }}
+  environment: ${{ parameters.environment }}
+  resourceGroup: '${{ parameters.prefix }}-${{ parameters.environment }}-rg'
+  functionAppName: '${{ parameters.prefix }}-${{ parameters.environment }}-func'
+  synapseWorkspace: '${{ parameters.prefix }}-${{ parameters.environment }}-syn'
+
+stages:
+  - stage: TestGate
+    displayName: 'Test Gate (must pass before deploy)'
+    jobs:
+      - job: RunTests
+        displayName: 'Unit Tests + Compile Check'
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '3.10'
+
+          - script: |
+              pip install -r agents/requirements.txt
+              pip install pytest pytest-cov
+            displayName: 'Install dependencies'
+
+          - script: |
+              python -m py_compile agents/function_app.py
+              python -m py_compile test-automation/function_app.py
+            displayName: 'Compile check'
+
+          - script: |
+              pytest tests/ -v --tb=short --junitxml=test-results.xml
+            displayName: 'Run 127 unit tests'
+
+          - task: PublishTestResults@2
+            inputs:
+              testResultsFormat: 'JUnit'
+              testResultsFiles: 'test-results.xml'
+            condition: always()
+
+  - stage: DeployInfra
+    displayName: 'Deploy Infrastructure'
+    dependsOn: TestGate
+    jobs:
+      - job: BicepDeploy
+        displayName: 'Deploy Bicep Templates'
+        steps:
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                az deployment group create \
+                  --resource-group $(resourceGroup) \
+                  --template-file infrastructure/bicep/main.bicep \
+                  --parameters infrastructure/bicep/parameters/dev.bicepparam
+            displayName: 'Deploy Bicep'
+
+  - stage: DeployCatalog
+    displayName: 'Deploy Catalog Schema'
+    dependsOn: DeployInfra
+    jobs:
+      - job: CatalogDDL
+        displayName: 'Run Catalog DDL'
+        steps:
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                # Get Synapse endpoint
+                SYNAPSE_EP=$(az synapse workspace show \
+                  --name $(synapseWorkspace) \
+                  --resource-group $(resourceGroup) \
+                  --query connectivityEndpoints.sql -o tsv)
+
+                # Run DDL scripts in order
+                for script in catalog/ddl/01_create_schemas.sql \
+                              catalog/ddl/02_create_catalog_tables.sql \
+                              catalog/ddl/03_create_audit_tables.sql; do
+                  echo "Running $script..."
+                  sqlcmd -S "$SYNAPSE_EP" -d master -G -I -i "$script"
+                done
+
+                # Seed metadata
+                for script in catalog/seed/02_seed_catalog_metadata.sql; do
+                  echo "Running $script..."
+                  sqlcmd -S "$SYNAPSE_EP" -d master -G -I -i "$script"
+                done
+            displayName: 'Deploy Catalog DDL + Seed'
+
+  - stage: DeployAgents
+    displayName: 'Deploy Agent Functions (Blue-Green)'
+    dependsOn: DeployCatalog
+    jobs:
+      - job: FunctionDeploy
+        displayName: 'Deploy to Staging Slot → Swap'
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '3.10'
+
+          - script: |
+              cd agents
+              pip install -r requirements.txt --target=".python_packages/lib/site-packages"
+            displayName: 'Install Function dependencies'
+
+          - task: ArchiveFiles@2
+            inputs:
+              rootFolderOrFile: 'agents'
+              includeRootFolder: false
+              archiveType: 'zip'
+              archiveFile: '$(Build.ArtifactStagingDirectory)/agents.zip'
+
+          # Deploy to STAGING slot first (not production)
+          - task: AzureFunctionApp@2
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              appType: 'functionAppLinux'
+              appName: '$(functionAppName)'
+              package: '$(Build.ArtifactStagingDirectory)/agents.zip'
+              runtimeStack: 'PYTHON|3.10'
+              deployToSlotOrASE: true
+              slotName: 'staging'
+            displayName: 'Deploy to staging slot'
+
+          # Warm up staging slot
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                STAGING_URL="https://$(functionAppName)-staging.azurewebsites.net/api/health"
+                echo "Warming up staging slot..."
+                for i in 1 2 3; do
+                  HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$STAGING_URL" || echo "000")
+                  echo "  Attempt $i: HTTP $HTTP_CODE"
+                  if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "207" ]; then
+                    echo "Staging slot is warm"
+                    break
+                  fi
+                  sleep 10
+                done
+            displayName: 'Warm up staging slot'
+
+          # Swap staging → production (zero-downtime)
+          - task: AzureAppServiceManage@0
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              action: 'Swap Slots'
+              webAppName: '$(functionAppName)'
+              resourceGroupName: '$(resourceGroup)'
+              sourceSlot: 'staging'
+            displayName: 'Swap staging → production'
+
+  - stage: SeedSourceData
+    displayName: 'Seed Source Database'
+    dependsOn: DeployInfra
+    jobs:
+      - job: SeedData
+        displayName: 'Seed Sample Data'
+        steps:
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                SQL_SERVER=$(az sql server show \
+                  --name biautomation-$(environment)-sqlsrv \
+                  --resource-group $(resourceGroup) \
+                  --query fullyQualifiedDomainName -o tsv)
+
+                sqlcmd -S "$SQL_SERVER" -d biautomation-$(environment)-sourcedb \
+                  -U sqladmin -P "$(sqlAdminPassword)" \
+                  -I -i catalog/seed/01_seed_source_data.sql
+            displayName: 'Seed source data'
+
+  - stage: DeployTestApp
+    displayName: 'Deploy Test Automation Function App'
+    dependsOn: DeployCatalog
+    jobs:
+      - job: TestFunctionDeploy
+        displayName: 'Deploy Test Automation App'
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '3.10'
+
+          - script: |
+              cd test-automation
+              pip install -r requirements.txt --target=".python_packages/lib/site-packages"
+            displayName: 'Install Test Function dependencies'
+
+          - task: ArchiveFiles@2
+            inputs:
+              rootFolderOrFile: 'test-automation'
+              includeRootFolder: false
+              archiveType: 'zip'
+              archiveFile: '$(Build.ArtifactStagingDirectory)/test-automation.zip'
+
+          - task: AzureFunctionApp@2
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              appType: 'functionAppLinux'
+              appName: '$(prefix)-$(environment)-test-func'
+              package: '$(Build.ArtifactStagingDirectory)/test-automation.zip'
+              runtimeStack: 'PYTHON|3.10'
+            displayName: 'Deploy test-automation function app'
+
+  - stage: SmokeTest
+    displayName: 'Smoke Test'
+    dependsOn:
+      - DeployAgents
+      - DeployTestApp
+      - SeedSourceData
+    jobs:
+      - job: TestEndpoint
+        displayName: 'Test Agent Endpoint'
+        steps:
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: '$(azureSubscription)'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                FUNC_URL="https://$(functionAppName).azurewebsites.net/api/process-story"
+                FUNC_KEY=$(az functionapp keys list \
+                  --name $(functionAppName) \
+                  --resource-group $(resourceGroup) \
+                  --query "functionKeys.default" -o tsv)
+
+                echo "Testing story processing endpoint..."
+                HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+                  -X POST "$FUNC_URL?code=$FUNC_KEY" \
+                  -H "Content-Type: application/json" \
+                  -d '{"story_id":"SMOKE-TEST","title":"Smoke Test","business_objective":"test","source_system":"SalesDB","source_tables":["sales.Customer"]}')
+
+                if [ "$HTTP_CODE" = "202" ]; then
+                  echo "Smoke test PASSED (HTTP 202 Accepted)"
+                else
+                  echo "Smoke test FAILED (HTTP $HTTP_CODE)"
+                  exit 1
+                fi
+            displayName: 'Smoke test story endpoint'
